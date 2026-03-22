@@ -2,7 +2,8 @@
 
 import logging
 import threading
-from typing import Any, Callable, Dict, List, Optional
+from collections.abc import Callable
+from typing import Any
 
 
 def _get_fdef_by_path(target_cls, dot_path: str):
@@ -74,9 +75,9 @@ class ConfigPipeline:
             self._live = target
 
         self._mode = mode
-        self._providers: List = []
-        self._reactors: Dict[str, List[Callable]] = {}
-        self._mutator: Optional[Callable] = None
+        self._providers: list = []
+        self._reactors: dict[str, list[Callable]] = {}
+        self._mutator: Callable | None = None
         self._lock = threading.Lock()
         self._watcher = None
         self._loaded = False
@@ -255,8 +256,8 @@ class ConfigPipeline:
             return self
 
         try:
-            from watchdog.observers import Observer
             from watchdog.events import FileSystemEventHandler
+            from watchdog.observers import Observer
         except ImportError:
             from .exceptions import MissingDependencyError
 

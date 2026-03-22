@@ -1,6 +1,6 @@
 """Tests for field definitions: metadata, descriptions, class/instance access, and explain()."""
 
-from layer import layerclass, field, require, one_of
+from layer import field, layerclass, one_of, require
 
 
 @layerclass

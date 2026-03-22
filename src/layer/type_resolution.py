@@ -7,7 +7,7 @@ and Literal, as well as dataclasses and Pydantic v2 models.
 
 import dataclasses
 import json
-from typing import Any, Type, Union, get_args, get_origin
+from typing import Any, Union, get_args, get_origin
 
 from .exceptions import CoercionError, StructureError
 
@@ -44,7 +44,7 @@ def _parse_dict_string(s: str) -> dict:
     return result
 
 
-def coerce(value: Any, type_hint: Type, parser=None) -> Any:
+def coerce(value: Any, type_hint: type, parser=None) -> Any:
     """Coerce a value to the given type hint.
 
     Resolution order:

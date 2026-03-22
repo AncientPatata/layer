@@ -5,13 +5,14 @@ Resolves ${field_name} references within string values, with cycle detection.
 """
 
 import re
-from typing import Any, Set
-from .exceptions import InterpolationError, InterpolationCycleError
+from typing import Any
+
+from .exceptions import InterpolationCycleError, InterpolationError
 
 _VAR_PATTERN = re.compile(r"\$\{([a-zA-Z_][a-zA-Z0-9_.]*)\}")
 
 
-def resolve_value(value: Any, config, _resolving: Set[str] = None) -> Any:
+def resolve_value(value: Any, config, _resolving: set[str] = None) -> Any:
     """Resolve ${...} references in a single value.
 
     Supports:

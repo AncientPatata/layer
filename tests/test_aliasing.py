@@ -1,7 +1,8 @@
 """Tests for field aliasing: alias, aliases, env, and to_dict(by_alias=True)."""
 
 import pytest
-from layer import layerclass, field, solidify, solidify_env
+
+from layer import field, layerclass, solidify, solidify_env
 from layer.exceptions import StructureError
 
 

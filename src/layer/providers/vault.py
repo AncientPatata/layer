@@ -2,8 +2,8 @@
 
 import os
 
-from .base import BaseProvider
 from ..exceptions import MissingDependencyError
+from .base import BaseProvider
 
 
 class VaultProvider(BaseProvider):

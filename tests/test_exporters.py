@@ -1,7 +1,6 @@
 """Tests for layer.exporters — to_json_schema, to_dotenv_template, to_configmap."""
 
-from layer import layerclass, field, exporters
-
+from layer import exporters, field, layerclass
 
 # ---------------------------------------------------------------------------
 # Shared configs

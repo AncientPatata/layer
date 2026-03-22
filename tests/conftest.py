@@ -1,5 +1,6 @@
 import pytest
-from layer import layerclass, field, require, one_of
+
+from layer import field, layerclass, one_of, require
 
 
 @layerclass

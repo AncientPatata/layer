@@ -1,13 +1,14 @@
 """Tests for SolidifyMode — LAX, STANDARD, and STRICT strictness levels."""
 
 import pytest
+
 from layer import (
-    layerclass,
-    field,
-    solidify,
-    solidify_file,
     ConfigPipeline,
     SolidifyMode,
+    field,
+    layerclass,
+    solidify,
+    solidify_file,
 )
 from layer.exceptions import CoercionError, StructureError
 from layer.providers.base import BaseProvider

@@ -24,13 +24,13 @@ Layer is a Python library for applications that pull config from multiple places
 ## Installation
 
 ```bash
-pip install layer
+pip install layerconf
 
 # Optional providers
-pip install layer[watch]   # FileProvider(watch=True) hot-reload via watchdog
-pip install layer[dotenv]  # DotEnvProvider via python-dotenv
-pip install layer[aws]     # SSMProvider via boto3
-pip install layer[vault]   # VaultProvider via hvac
+pip install layerconf[watch]   # FileProvider(watch=True) hot-reload via watchdog
+pip install layerconf[dotenv]  # DotEnvProvider via python-dotenv
+pip install layerconf[aws]     # SSMProvider via boto3
+pip install layerconf[vault]   # VaultProvider via hvac
 ```
 
 ---

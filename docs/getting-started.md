@@ -9,16 +9,16 @@ Layer solves this by giving you a typed pipeline with a defined merge order, ful
 ## Installation
 
 ```bash
-pip install layer
+pip install layerconf
 ```
 
 Optional extras for specific providers:
 
 ```bash
-pip install layer[watch]   # hot-reload via watchdog
-pip install layer[dotenv]  # DotEnvProvider
-pip install layer[aws]     # SSMProvider (boto3)
-pip install layer[vault]   # VaultProvider (hvac)
+pip install layerconf[watch]   # hot-reload via watchdog
+pip install layerconf[dotenv]  # DotEnvProvider
+pip install layerconf[aws]     # SSMProvider (boto3)
+pip install layerconf[vault]   # VaultProvider (hvac)
 ```
 
 ## Define a Schema

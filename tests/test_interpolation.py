@@ -1,6 +1,6 @@
 """Tests for variable interpolation and source history tracking."""
 
-from layer import layerclass, field
+from layer import field, layerclass
 
 
 @layerclass

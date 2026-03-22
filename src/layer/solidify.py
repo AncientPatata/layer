@@ -1,7 +1,8 @@
 import os
 from enum import Enum
-from typing import Type, Dict, Any, Optional, List
-from .exceptions import StructureError, CoercionError
+from typing import Any, Optional
+
+from .exceptions import CoercionError, StructureError
 from .type_resolution import coerce as _coerce
 
 
@@ -34,10 +35,10 @@ def _is_layer_obj_type(cls):
 
 
 def solidify(
-    data: Dict[str, Any],
-    target: Type,
+    data: dict[str, Any],
+    target: type,
     source: str = "unknown",
-    check: Optional[List[str]] = None,
+    check: list[str] | None = None,
     strict: bool = False,
     coerce: bool = True,
     mode: Optional["SolidifyMode"] = None,
@@ -67,7 +68,7 @@ def solidify(
     instance = target()
 
     # Pre-compute reverse alias map: alias_string -> canonical field name
-    alias_map: Dict[str, str] = {}
+    alias_map: dict[str, str] = {}
     for field_name, fdef in instance._field_defs.items():
         if fdef.alias:
             alias_map[fdef.alias] = field_name
@@ -75,7 +76,8 @@ def solidify(
             alias_map[a] = field_name
 
     for key, value in data.items():
-        # Resolve canonical field name: try exact match, then alias map, then kebab/case normalization
+        # Resolve canonical field name: try exact match, then alias map, then
+        # kebab/case normalization
         normalized_key = key.replace("-", "_").lower()
         if normalized_key in instance._field_defs:
             field_name = normalized_key
@@ -126,8 +128,8 @@ def solidify(
 
 def solidify_env(
     prefix: str,
-    target: Type,
-    key_map: Optional[Dict[str, Any]] = None,
+    target: type,
+    key_map: dict[str, Any] | None = None,
     separator: str = "_",
 ):
     """Loads configuration from environment variables.
@@ -227,13 +229,13 @@ def _read_file(path: str, fmt: str | None = None) -> dict:
             import yaml
         except ImportError:
             raise StructureError("PyYAML is required to load .yml/.yaml files: pip install PyYAML")
-        with open(path, "r") as f:
+        with open(path) as f:
             data = yaml.safe_load(f) or {}
 
     elif ext == "json":
         import json
 
-        with open(path, "r") as f:
+        with open(path) as f:
             data = json.load(f)
 
     elif ext == "toml":
@@ -262,9 +264,9 @@ def _read_file(path: str, fmt: str | None = None) -> dict:
 
 def solidify_file(
     path: str,
-    target: Type,
+    target: type,
     source: str = None,
-    check: Optional[List[str]] = None,
+    check: list[str] | None = None,
     strict: bool = False,
     coerce: bool = True,
     mode: Optional["SolidifyMode"] = None,

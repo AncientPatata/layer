@@ -1,12 +1,13 @@
 import os
 from dataclasses import dataclass
-from typing import List, Any
+from typing import Any
+
 from .exceptions import ConfigError, ValidationError
 
 
 @dataclass
 class ValidationResult:
-    errors: List[ValidationError]
+    errors: list[ValidationError]
 
     @property
     def is_valid(self) -> bool:
@@ -226,7 +227,8 @@ def depends_on(*required_fields):
             if missing:
                 raise ValidationError(
                     field_name,
-                    f"When '{field_name}' is set, {required_fields} must also be set. Missing: {missing}",
+                    f"When '{field_name}' is set, {required_fields} "
+                    f"must also be set. Missing: {missing}",
                     "depends_on",
                     "unknown",
                 )

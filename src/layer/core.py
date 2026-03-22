@@ -1,13 +1,12 @@
 import dataclasses
-from copy import deepcopy
-from typing import Any, Type, Dict, List
 from collections import defaultdict
+from copy import deepcopy
+from typing import Any
 
 from .interpolation import resolve_all
-from .validation import ValidationResult, ValidationError
 from .layering import LayerRule
 from .sources import SourceHistory
-
+from .validation import ValidationError, ValidationResult
 
 _REDACTED = "***"
 
@@ -17,15 +16,15 @@ class FieldDef:
 
     def __init__(
         self,
-        type_hint: Type,
+        type_hint: type,
         default: Any = None,
-        categories: Dict[str, list] = None,
-        meta: Dict[str, Any] = None,
+        categories: dict[str, list] = None,
+        meta: dict[str, Any] = None,
         description: str = None,
         secret: bool = False,
         parser: Any = None,
         alias: str = None,
-        aliases: List[str] = None,
+        aliases: list[str] = None,
         env: str = None,
         reloadable: bool = True,
     ):
@@ -43,15 +42,15 @@ class FieldDef:
 
 
 def field(
-    type_hint: Type,
+    type_hint: type,
     *uncategorized_rules,
     default: Any = None,
-    meta: Dict[str, Any] = None,
+    meta: dict[str, Any] = None,
     description: str = None,
     secret: bool = False,
     parser: Any = None,
     alias: str = None,
-    aliases: List[str] = None,
+    aliases: list[str] = None,
     env: str = None,
     reloadable: bool = True,
     **category_rules,
@@ -643,8 +642,10 @@ def layerclass(cls):
                     to the field name when no alias is defined).
 
             Design note:
-            to_dict() defaults to redact=False because it's often used for serialization back to disk.
-            explain() defaults to redact=True because it's primarily a debugging/logging tool. The caller can always override.
+            to_dict() defaults to redact=False because it's often used for serialization
+            back to disk.
+            explain() defaults to redact=True because it's primarily a debugging/logging
+            tool. The caller can always override.
             """
             result = {}
             for name, fdef in self._field_defs.items():
@@ -774,7 +775,8 @@ def layerclass(cls):
                 # Extract enum from one_of validators
                 for cat_rules in fdef.categories.values():
                     for rule in cat_rules:
-                        # one_of returns a closure named _one_of with __closure__ containing the values
+                        # one_of returns a closure named _one_of with __closure__
+                        # containing the values
                         if hasattr(rule, "__name__") and rule.__name__ == "_one_of":
                             if rule.__closure__ and len(rule.__closure__) > 0:
                                 allowed = rule.__closure__[0].cell_contents

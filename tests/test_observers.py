@@ -2,10 +2,8 @@
 
 import logging
 
-
-from layer import layerclass, field, ConfigPipeline, BasePipelineObserver, LoggerObserver
+from layer import BasePipelineObserver, ConfigPipeline, LoggerObserver, field, layerclass
 from layer.providers.base import BaseProvider
-
 
 # ---------------------------------------------------------------------------
 # Shared test helpers

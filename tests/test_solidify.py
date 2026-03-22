@@ -1,7 +1,8 @@
 """Tests for solidify() type coercion and solidify_file() / write_file() serialization."""
 
-from layer import layerclass, field, solidify, solidify_file, write_file
 from conftest import FileConfig
+
+from layer import field, layerclass, solidify, solidify_file, write_file
 
 
 @layerclass

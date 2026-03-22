@@ -11,10 +11,8 @@ Example:
     print(exporters.to_configmap(AppConfig, name="my-app-config"))
 """
 
-from typing import Type
 
-
-def to_json_schema(config_cls: Type) -> dict:
+def to_json_schema(config_cls: type) -> dict:
     """Return the JSON Schema dict for a ``@layerclass``.
 
     Wraps ``config_cls.json_schema()`` and returns the result directly.
@@ -28,7 +26,7 @@ def to_json_schema(config_cls: Type) -> dict:
     return config_cls.json_schema()
 
 
-def to_dotenv_template(config_cls: Type, prefix: str = "") -> str:
+def to_dotenv_template(config_cls: type, prefix: str = "") -> str:
     """Generate a ``.env`` file template from a ``@layerclass`` definition.
 
     Each field becomes one ``KEY=<default>`` line, with its description emitted
@@ -91,7 +89,7 @@ def _render_dotenv_fields(config_cls, prefix: str, lines: list) -> None:
         lines.append(f"{var_name}={default_str}")
 
 
-def to_yaml(config_cls: Type) -> str:
+def to_yaml(config_cls: type) -> str:
     """Generate a YAML configuration template from a ``@layerclass``.
 
     Non-secret fields are emitted with their default values. Secret fields
@@ -117,8 +115,9 @@ def to_yaml(config_cls: Type) -> str:
 
 def _render_yaml_fields(config_cls, indent: int, lines: list) -> None:
     """Recursively render fields from a @layerclass into YAML lines."""
-    from .core import _is_layerclass
     import yaml
+
+    from .core import _is_layerclass
 
     prefix = "  " * indent
 
@@ -146,7 +145,7 @@ def _render_yaml_fields(config_cls, indent: int, lines: list) -> None:
             lines.append(f"{prefix}{line}")
 
 
-def to_configmap(config_cls: Type, name: str = "app-config") -> str:
+def to_configmap(config_cls: type, name: str = "app-config") -> str:
     """Generate a Kubernetes ConfigMap YAML string from a ``@layerclass``.
 
     Non-secret fields are emitted as ConfigMap data entries. Secret fields

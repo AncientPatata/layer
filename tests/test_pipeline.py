@@ -1,12 +1,12 @@
 """Tests for ConfigPipeline — orchestration, hot-reload, reactors, and thread safety."""
 
 import threading
+
 import pytest
+from conftest import AppConfig, FileConfig
 
 from layer import ConfigPipeline
 from layer.providers import BaseProvider, FileProvider
-from conftest import AppConfig, FileConfig
-
 
 # ---------------------------------------------------------------------------
 # Test helper: DictProvider
@@ -357,7 +357,7 @@ class TestOnChangeChaining:
 class TestReloadableLocking:
     def _make_locked_config(self):
         """Config with a reloadable=False field."""
-        from layer import layerclass, field
+        from layer import field, layerclass
 
         @layerclass
         class LockConfig:
@@ -405,7 +405,7 @@ class TestReloadableLocking:
         assert any("host" in msg for msg in caplog.messages)
 
     def test_reloadable_false_nested_field(self):
-        from layer import layerclass, field
+        from layer import field, layerclass
 
         @layerclass
         class TlsConf:

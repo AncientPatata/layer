@@ -1,9 +1,11 @@
 """Tests for JSON Schema generation."""
 
 import json
+
 import pytest
-from layer import layerclass, field, require, one_of, in_range
 from conftest import TlsConfig
+
+from layer import field, in_range, layerclass, one_of, require
 
 
 @layerclass

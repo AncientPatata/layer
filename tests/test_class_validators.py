@@ -1,17 +1,17 @@
 """Tests for @parser, @validator, and @root_validator class-level decorators."""
 
 import os
+
 from layer import (
-    layerclass,
     field,
+    layerclass,
     parser,
-    validator,
     root_validator,
     solidify,
     solidify_env,
+    validator,
 )
-from layer.exceptions import ValidationError, ConfigError
-
+from layer.exceptions import ConfigError, ValidationError
 
 # ---------------------------------------------------------------------------
 # @parser

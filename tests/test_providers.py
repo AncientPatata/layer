@@ -2,11 +2,11 @@
 
 import json
 import os
+
 import pytest
 
 from layer import MissingDependencyError
-from layer.providers import BaseProvider, FileProvider, EnvProvider, DotEnvProvider
-
+from layer.providers import BaseProvider, DotEnvProvider, EnvProvider, FileProvider
 
 # ---------------------------------------------------------------------------
 # Test helper: DictProvider
@@ -196,9 +196,10 @@ class TestDotEnvProvider:
 
     def test_pipeline_dotenv_with_env_provider(self, tmp_path, monkeypatch):
         """Integration: DotEnvProvider injects, EnvProvider strips prefix."""
+        from conftest import FileConfig
+
         from layer import ConfigPipeline
         from layer.providers import EnvProvider
-        from conftest import FileConfig
 
         env_path = str(tmp_path / ".env")
         with open(env_path, "w") as f:

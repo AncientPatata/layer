@@ -1,9 +1,9 @@
 """Provider architecture for ConfigPipeline."""
 
 from .base import BaseProvider
-from .file import FileProvider
-from .env import EnvProvider
 from .dotenv import DotEnvProvider
+from .env import EnvProvider
+from .file import FileProvider
 
 __all__ = [
     "BaseProvider",

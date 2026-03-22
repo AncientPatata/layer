@@ -1,8 +1,9 @@
 """Tests for nested @layerclass config objects."""
 
+from conftest import AppConfig
+
 from layer import solidify, solidify_file, write_file
 from layer.core import _is_layerclass
-from conftest import AppConfig
 
 
 class TestNestedDefaults:

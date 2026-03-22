@@ -1,20 +1,20 @@
 """Tests for polish features: layerclass rename, pipeline validate, layering rules, exceptions."""
 
 import pytest
+
 from layer import (
-    layerclass,
-    layer_obj,
-    field,
     ConfigPipeline,
-    LayerRule,
-    ValidationError,
-    MissingDependencyError,
     HotReloadError,
     InterpolationCycleError,
     InterpolationError,
+    LayerRule,
+    MissingDependencyError,
+    ValidationError,
+    field,
+    layer_obj,
+    layerclass,
 )
 from layer.providers.base import BaseProvider
-
 
 # ---------------------------------------------------------------------------
 # Shared helpers

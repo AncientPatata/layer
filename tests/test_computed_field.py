@@ -1,8 +1,8 @@
 """Tests for @computed_field — dynamic read-only fields integrated into to_dict/explain."""
 
 import pytest
-from layer import layerclass, field, computed_field
 
+from layer import computed_field, field, layerclass
 
 # ---------------------------------------------------------------------------
 # Shared config

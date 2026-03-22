@@ -1,9 +1,11 @@
 """Tests for diff(), freeze(), secret redaction, and to_dict() serialization."""
 
 import dataclasses
+
 import pytest
-from layer import layerclass, field
 from conftest import AppConfig
+
+from layer import field, layerclass
 
 
 @layerclass

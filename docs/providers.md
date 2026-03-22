@@ -73,7 +73,7 @@ EnvProvider("APP", separator="__")    # APP__DATABASE__HOST → database.host
 
 ### DotEnvProvider
 
-Reads a `.env` file and injects its variables into `os.environ`. Chain it with `EnvProvider` so prefix-stripping is handled consistently. Requires `pip install layer[dotenv]`.
+Reads a `.env` file and injects its variables into `os.environ`. Chain it with `EnvProvider` so prefix-stripping is handled consistently. Requires `pip install layerconf[dotenv]`.
 
 ```python
 from layer.providers import DotEnvProvider, EnvProvider
@@ -87,7 +87,7 @@ pipeline = (
 
 ### SSMProvider
 
-Reads all parameters under an AWS SSM path prefix. Requires `pip install layer[aws]`.
+Reads all parameters under an AWS SSM path prefix. Requires `pip install layerconf[aws]`.
 
 ```python
 from layer.providers import SSMProvider
@@ -99,7 +99,7 @@ SSMProvider("/myapp/prod/")
 
 ### VaultProvider
 
-Reads a KV v2 secret from HashiCorp Vault. Requires `pip install layer[vault]`.
+Reads a KV v2 secret from HashiCorp Vault. Requires `pip install layerconf[vault]`.
 
 ```python
 from layer.providers import VaultProvider
@@ -138,7 +138,7 @@ pipeline.add_provider(
 
 Layer supports live config updates without restarting your application. When a watched provider detects a change, the pipeline rebuilds a shadow config, diffs it against the live config, fires any registered callbacks, and atomically applies the changes. Fields marked `reloadable=False` are never updated.
 
-Requires `pip install layer[watch]`.
+Requires `pip install layerconf[watch]`.
 
 ```python
 pipeline = (

@@ -1,7 +1,7 @@
 """SSMProvider — reads config from AWS Systems Manager Parameter Store."""
 
-from .base import BaseProvider
 from ..exceptions import MissingDependencyError
+from .base import BaseProvider
 
 
 class SSMProvider(BaseProvider):

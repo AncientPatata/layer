@@ -1,7 +1,7 @@
 """DotEnvProvider — reads config from .env files via python-dotenv."""
 
-from .base import BaseProvider
 from ..exceptions import MissingDependencyError
+from .base import BaseProvider
 
 
 class DotEnvProvider(BaseProvider):

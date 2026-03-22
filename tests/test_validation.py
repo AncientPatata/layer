@@ -1,6 +1,6 @@
 """Tests for cross-field validators and layering rules."""
 
-from layer import layerclass, field, requires_if, LayerRule
+from layer import LayerRule, field, layerclass, requires_if
 
 
 @layerclass

@@ -1,13 +1,13 @@
 """Tests for the advanced type resolution / coercion engine."""
 
 import dataclasses
-import pytest
-from typing import Dict, List, Literal, Optional, Tuple, Union
+from typing import Literal
 
-from layer import layerclass, field, solidify
+import pytest
+
+from layer import field, layerclass, solidify
 from layer.exceptions import CoercionError, StructureError
 from layer.type_resolution import coerce
-
 
 # ---------------------------------------------------------------------------
 # List[T]
@@ -16,16 +16,16 @@ from layer.type_resolution import coerce
 
 class TestListCoercion:
     def test_List_int_comma_separated(self):
-        assert coerce("1, 2, 3", List[int]) == [1, 2, 3]
+        assert coerce("1, 2, 3", list[int]) == [1, 2, 3]
 
     def test_List_int_json_array_string(self):
-        assert coerce('["1", "2", "3"]', List[int]) == [1, 2, 3]
+        assert coerce('["1", "2", "3"]', list[int]) == [1, 2, 3]
 
     def test_List_str_keeps_items_as_strings(self):
-        assert coerce("a, b, c", List[str]) == ["a", "b", "c"]
+        assert coerce("a, b, c", list[str]) == ["a", "b", "c"]
 
     def test_List_already_correct_type(self):
-        assert coerce([1, 2], List[int]) == [1, 2]
+        assert coerce([1, 2], list[int]) == [1, 2]
 
     def test_bare_list_no_item_coercion(self):
         # bare list — no inner-type info, just parse the string
@@ -39,13 +39,13 @@ class TestListCoercion:
 
 class TestDictCoercion:
     def test_Dict_str_int_from_key_value_string(self):
-        assert coerce("a=1, b=2", Dict[str, int]) == {"a": 1, "b": 2}
+        assert coerce("a=1, b=2", dict[str, int]) == {"a": 1, "b": 2}
 
     def test_Dict_str_int_from_json_string(self):
-        assert coerce('{"a": "1", "b": "2"}', Dict[str, int]) == {"a": 1, "b": 2}
+        assert coerce('{"a": "1", "b": "2"}', dict[str, int]) == {"a": 1, "b": 2}
 
     def test_Dict_already_correct_type(self):
-        assert coerce({"a": 1}, Dict[str, int]) == {"a": 1}
+        assert coerce({"a": 1}, dict[str, int]) == {"a": 1}
 
     def test_bare_dict_no_value_coercion(self):
         # bare dict — values stay as strings
@@ -54,45 +54,45 @@ class TestDictCoercion:
 
 
 # ---------------------------------------------------------------------------
-# Optional[T]
+# T | None
 # ---------------------------------------------------------------------------
 
 
 class TestOptionalCoercion:
     def test_none_returns_none(self):
-        assert coerce(None, Optional[int]) is None
+        assert coerce(None, int | None) is None
 
     def test_string_coerced_to_inner_type(self):
-        assert coerce("42", Optional[int]) == 42
+        assert coerce("42", int | None) == 42
 
     def test_already_correct_inner_type(self):
-        assert coerce(7, Optional[int]) == 7
+        assert coerce(7, int | None) == 7
 
 
 # ---------------------------------------------------------------------------
-# Union[A, B]
+# A | B
 # ---------------------------------------------------------------------------
 
 
 class TestUnionCoercion:
     def test_tries_first_type_first(self):
-        result = coerce("123", Union[int, str])
+        result = coerce("123", int | str)
         assert result == 123
         assert isinstance(result, int)
 
     def test_order_matters_str_before_int(self):
-        result = coerce("123", Union[str, int])
+        result = coerce("123", str | int)
         assert result == "123"
         assert isinstance(result, str)
 
     def test_falls_through_to_next_type_on_failure(self):
-        result = coerce("abc", Union[int, str])
+        result = coerce("abc", int | str)
         assert result == "abc"
         assert isinstance(result, str)
 
     def test_all_fail_raises_coercion_error(self):
         with pytest.raises(CoercionError):
-            coerce("not-a-number", Union[int, float])
+            coerce("not-a-number", int | float)
 
 
 # ---------------------------------------------------------------------------
@@ -123,13 +123,13 @@ class TestLiteralCoercion:
 
 class TestTupleCoercion:
     def test_fixed_length_coerces_by_position(self):
-        assert coerce("1, hello", Tuple[int, str]) == (1, "hello")
+        assert coerce("1, hello", tuple[int, str]) == (1, "hello")
 
     def test_variable_length_homogeneous(self):
-        assert coerce("1, 2, 3", Tuple[int, ...]) == (1, 2, 3)
+        assert coerce("1, 2, 3", tuple[int, ...]) == (1, 2, 3)
 
     def test_already_a_list_coerces_to_tuple(self):
-        assert coerce([1, 2], Tuple[int, ...]) == (1, 2)
+        assert coerce([1, 2], tuple[int, ...]) == (1, 2)
 
 
 # ---------------------------------------------------------------------------
@@ -189,7 +189,7 @@ class TestSolidifyIntegration:
     def test_List_int_via_solidify(self):
         @layerclass
         class C:
-            scores: List[int] = field(List[int], default=None)
+            scores: list[int] = field(list[int], default=None)
 
         c = solidify({"scores": "10, 20, 30"}, C)
         assert c.scores == [10, 20, 30]
@@ -197,7 +197,7 @@ class TestSolidifyIntegration:
     def test_Optional_int_via_solidify(self):
         @layerclass
         class C:
-            port: Optional[int] = field(Optional[int], default=None)
+            port: int | None = field(int | None, default=None)
 
         assert solidify({"port": "8080"}, C).port == 8080
         assert solidify({"port": None}, C).port is None
@@ -205,7 +205,7 @@ class TestSolidifyIntegration:
     def test_Dict_str_int_via_solidify(self):
         @layerclass
         class C:
-            scores: Dict[str, int] = field(Dict[str, int], default=None)
+            scores: dict[str, int] = field(dict[str, int], default=None)
 
         c = solidify({"scores": "a=1, b=2"}, C)
         assert c.scores == {"a": 1, "b": 2}
@@ -229,7 +229,7 @@ class TestSolidifyIntegration:
     def test_Union_via_solidify(self):
         @layerclass
         class C:
-            value: Union[int, str] = field(Union[int, str], default=None)
+            value: int | str = field(int | str, default=None)
 
         c = solidify({"value": "42"}, C)
         assert c.value == 42
