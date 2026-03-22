@@ -139,18 +139,81 @@ class TestEnvProvider:
 
 
 class TestDotEnvProvider:
-    def test_reads_dotenv_file(self, tmp_path):
+    def test_injects_into_environ(self, tmp_path, monkeypatch):
         env_path = str(tmp_path / ".env")
         with open(env_path, "w") as f:
-            f.write("DB_HOST=localhost\nDB_PORT=5432\n")
+            f.write("MYAPP_HOST=injected.example.com\nMYAPP_PORT=9999\n")
+
+        # Ensure keys are absent before read
+        monkeypatch.delenv("MYAPP_HOST", raising=False)
+        monkeypatch.delenv("MYAPP_PORT", raising=False)
 
         p = DotEnvProvider(path=env_path)
         try:
-            data = p.read()
-            assert data["DB_HOST"] == "localhost"
-            assert data["DB_PORT"] == "5432"
+            p.read()
         except ImportError:
             pytest.skip("python-dotenv not installed")
+
+        import os
+
+        assert os.environ.get("MYAPP_HOST") == "injected.example.com"
+        assert os.environ.get("MYAPP_PORT") == "9999"
+
+    def test_returns_empty_dict(self, tmp_path, monkeypatch):
+        env_path = str(tmp_path / ".env")
+        with open(env_path, "w") as f:
+            f.write("KEY=value\n")
+
+        monkeypatch.delenv("KEY", raising=False)
+        p = DotEnvProvider(path=env_path)
+        try:
+            result = p.read()
+        except ImportError:
+            pytest.skip("python-dotenv not installed")
+
+        assert result == {}
+
+    def test_does_not_override_existing_env_vars(self, tmp_path, monkeypatch):
+        env_path = str(tmp_path / ".env")
+        with open(env_path, "w") as f:
+            f.write("PROTECTED_KEY=from_dotenv\n")
+
+        monkeypatch.setenv("PROTECTED_KEY", "already_set")
+        p = DotEnvProvider(path=env_path)
+        try:
+            p.read()
+        except ImportError:
+            pytest.skip("python-dotenv not installed")
+
+        import os
+
+        assert os.environ["PROTECTED_KEY"] == "already_set"
+
+    def test_pipeline_dotenv_with_env_provider(self, tmp_path, monkeypatch):
+        """Integration: DotEnvProvider injects, EnvProvider strips prefix."""
+        from layer import ConfigPipeline
+        from layer.providers import EnvProvider
+        from conftest import FileConfig
+
+        env_path = str(tmp_path / ".env")
+        with open(env_path, "w") as f:
+            f.write("APP_HOST=dotenv.example.com\nAPP_PORT=7777\n")
+
+        monkeypatch.delenv("APP_HOST", raising=False)
+        monkeypatch.delenv("APP_PORT", raising=False)
+
+        try:
+            pipeline = (
+                ConfigPipeline(FileConfig)
+                .add_provider(DotEnvProvider(path=env_path))
+                .add_provider(EnvProvider(prefix="APP"))
+            )
+            config = pipeline.load()
+        except ImportError:
+            pytest.skip("python-dotenv not installed")
+
+        assert config.host == "dotenv.example.com"
+        assert config.port == 7777
 
     def test_source_name(self):
         p = DotEnvProvider("/app/.env")

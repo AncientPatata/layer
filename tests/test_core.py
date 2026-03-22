@@ -1,5 +1,6 @@
-"""Tests for diff(), freeze(), and secret redaction."""
+"""Tests for diff(), freeze(), secret redaction, and to_dict() serialization."""
 
+import dataclasses
 import pytest
 from layer import layer_obj, field
 from conftest import AppConfig
@@ -72,3 +73,69 @@ class TestSecretRedaction:
         info = c.explain(redact=True)
         pw = next(i for i in info if i["field"] == "password")
         assert pw["value"] == "***"
+
+
+# ---------------------------------------------------------------------------
+# to_dict() with external model types
+# ---------------------------------------------------------------------------
+
+
+@dataclasses.dataclass
+class Point:
+    x: int
+    y: int
+
+
+@layer_obj
+class PointConfig:
+    location: Point = field(Point, default=None)
+    name: str = field(str, default="default")
+
+
+class TestToDictExternalModels:
+    def test_dataclass_field_serialized_to_dict(self):
+        c = PointConfig()
+        c.location = Point(x=3, y=7)
+        result = c.to_dict()
+        assert isinstance(result["location"], dict)
+        assert result["location"] == {"x": 3, "y": 7}
+
+    def test_none_field_not_affected(self):
+        c = PointConfig()
+        # location defaults to None
+        result = c.to_dict()
+        assert result["location"] is None
+
+    def test_plain_field_unaffected(self):
+        c = PointConfig()
+        c.name = "hello"
+        result = c.to_dict()
+        assert result["name"] == "hello"
+
+    def test_dataclass_class_not_mistakenly_serialized(self):
+        # A field whose *value* happens to be a dataclass class (not instance)
+        # should not be passed to dataclasses.asdict()
+        c = PointConfig()
+        # Assign the class itself (edge case)
+        object.__setattr__(c, "location", Point)
+        result = c.to_dict()
+        # Should return the class as-is, not raise
+        assert result["location"] is Point
+
+    def test_pydantic_field_serialized_to_dict(self):
+        pytest.importorskip("pydantic", reason="pydantic not installed")
+        from pydantic import BaseModel
+
+        class Address(BaseModel):
+            street: str
+            city: str
+
+        @layer_obj
+        class AddrConfig:
+            address: Address = field(Address, default=None)
+
+        c = AddrConfig()
+        c.address = Address(street="123 Main St", city="Anytown")
+        result = c.to_dict()
+        assert isinstance(result["address"], dict)
+        assert result["address"]["city"] == "Anytown"

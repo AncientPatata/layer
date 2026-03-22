@@ -3,8 +3,16 @@ layer: A standalone package for deterministic, multi-source configuration
 with categorical validation and layered merging.
 """
 
-from .core import layer_obj, field, FieldDef, parser, validator, root_validator
-from .solidify import solidify, solidify_env, solidify_file, write_file
+from .core import (
+    layer_obj,
+    field,
+    FieldDef,
+    parser,
+    validator,
+    root_validator,
+    computed_field,
+)
+from .solidify import solidify, solidify_env, solidify_file, write_file, SolidifyMode
 from .layering import LayerRule
 from .validation import (
     require,
@@ -46,11 +54,13 @@ __all__ = [
     "parser",
     "validator",
     "root_validator",
+    "computed_field",
     # Solidification
     "solidify",
     "solidify_env",
     "solidify_file",
     "write_file",
+    "SolidifyMode",
     # Layering
     "LayerRule",
     # Validators — single-field

@@ -6,8 +6,11 @@ from .base import BaseProvider
 class DotEnvProvider(BaseProvider):
     """Reads configuration from a .env file.
 
-    Returns key-value pairs as a dict. Does NOT inject into os.environ —
-    if you need env injection, chain DotEnvProvider before EnvProvider.
+    Injects parsed variables into os.environ (without overwriting existing
+    values), then returns an empty dict. This allows a subsequent EnvProvider
+    in the pipeline to pick up the variables and handle prefix-stripping.
+
+    Chain as: DotEnvProvider(".env") → EnvProvider(prefix="APP")
 
     Requires python-dotenv: pip install layer[dotenv]
 
@@ -19,6 +22,8 @@ class DotEnvProvider(BaseProvider):
         self._path = path
 
     def read(self) -> dict:
+        import os
+
         try:
             from dotenv import dotenv_values
         except ImportError:
@@ -26,7 +31,11 @@ class DotEnvProvider(BaseProvider):
                 "python-dotenv is required for DotEnvProvider: "
                 "pip install layer[dotenv]"
             )
-        return dict(dotenv_values(self._path))
+        env_vars = dotenv_values(self._path)
+        for k, v in env_vars.items():
+            if k not in os.environ and v is not None:
+                os.environ[k] = v
+        return {}
 
     @property
     def source_name(self) -> str:

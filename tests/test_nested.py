@@ -49,6 +49,24 @@ class TestNestedLayering:
         assert base.tls.ca == "/base/ca"
         assert base.tls.cert == "/overlay/cert"
 
+    def test_nested_source_history_is_snapshot(self):
+        """Source history entry for a nested config must be frozen at the time
+        of the layer(), not a live reference that mutates afterwards."""
+        base = AppConfig()
+        base.tls.ca = "/original/ca"
+        overlay = solidify({"tls": {"cert": "/new/cert"}}, AppConfig, source="overlay")
+        base.layer(overlay)
+
+        # The source history for 'tls' should reflect the state AT layer time
+        tls_history = base._sources["tls"]
+        snapshot = tls_history.entries[-1].value
+
+        # Now mutate the live tls config
+        base.tls.ca = "/mutated/ca"
+
+        # The snapshot must NOT reflect the mutation
+        assert snapshot.ca != "/mutated/ca"
+
 
 class TestNestedValidation:
     def test_required_field_caught(self, app_config):

@@ -1,7 +1,27 @@
 import os
+from enum import Enum
 from typing import Type, Dict, Any, Optional, List
 from .exceptions import StructureError, CoercionError
 from .type_resolution import coerce as _coerce
+
+
+class SolidifyMode(Enum):
+    """Strictness mode for solidify() and ConfigPipeline.
+
+    LAX:
+        Unknown keys are silently ignored.
+        Type coercion errors are swallowed; the raw value is used as-is.
+    STANDARD (default):
+        Unknown keys are silently ignored.
+        Type coercion errors bubble up as CoercionError.
+    STRICT:
+        Unknown keys immediately raise StructureError.
+        No coercion is attempted; incoming values must already match the type hint.
+    """
+
+    LAX = "lax"
+    STANDARD = "standard"
+    STRICT = "strict"
 
 
 def _is_layer_obj_type(cls):
@@ -20,6 +40,7 @@ def solidify(
     check: Optional[List[str]] = None,
     strict: bool = False,
     coerce: bool = True,
+    mode: Optional["SolidifyMode"] = None,
 ):
     """Converts loose data (dict) into a typed config instance.
 
@@ -28,12 +49,21 @@ def solidify(
         target: Target @layer_obj class.
         source: Source tag for tracking (e.g. "config.yml", "cli").
         check: If provided, validate these categories immediately after loading.
-        strict: If True, raise StructureError on unknown keys.
-        coerce: If True, attempt type coercion based on field type hints.
+        strict: If True, raise StructureError on unknown keys. (Legacy; prefer mode=)
+        coerce: If True, attempt type coercion based on field type hints. (Legacy; prefer mode=)
+        mode: SolidifyMode controlling strictness. Overrides strict/coerce when set.
+            LAX — unknown keys ignored, coercion errors swallowed.
+            STANDARD — unknown keys ignored, CoercionError bubbles.
+            STRICT — unknown keys raise StructureError, no coercion.
 
     Returns:
         An instance of target with values set from data.
     """
+    # mode takes precedence over legacy strict/coerce kwargs
+    if mode is not None:
+        strict = mode == SolidifyMode.STRICT
+        coerce = mode != SolidifyMode.STRICT
+
     instance = target()
 
     # Pre-compute reverse alias map: alias_string -> canonical field name
@@ -62,7 +92,9 @@ def solidify(
 
         # Nested @layer_obj: recursively solidify if value is a dict
         if _is_layer_obj_type(fdef.type_hint) and isinstance(value, dict):
-            nested = solidify(value, fdef.type_hint, source=source, coerce=coerce)
+            nested = solidify(
+                value, fdef.type_hint, source=source, coerce=coerce, mode=mode
+            )
             setattr(instance, field_name, nested)
             instance._sources[field_name].push(source, nested)
         else:
@@ -71,7 +103,9 @@ def solidify(
                 try:
                     value = _coerce(value, fdef.type_hint, parser=fdef.parser)
                 except (ValueError, TypeError, CoercionError):
-                    pass  # Leave as-is if coercion fails
+                    if mode == SolidifyMode.STANDARD:
+                        raise  # STANDARD: let coercion errors bubble
+                    # LAX or legacy (mode=None): swallow and leave as-is
 
             # Apply @parser methods (after coercion, before write)
             for parse_fn in type(instance)._parsers.get(field_name, []):
@@ -222,6 +256,7 @@ def solidify_file(
     check: Optional[List[str]] = None,
     strict: bool = False,
     coerce: bool = True,
+    mode: Optional["SolidifyMode"] = None,
 ):
     """Load a config file (YAML, JSON, or TOML) and solidify it into a typed config.
 
@@ -233,8 +268,9 @@ def solidify_file(
         target: Target @layer_obj class.
         source: Source tag. Defaults to the file path.
         check: Categories to validate after loading.
-        strict: Raise on unknown keys.
-        coerce: Attempt type coercion.
+        strict: Raise on unknown keys. (Legacy; prefer mode=)
+        coerce: Attempt type coercion. (Legacy; prefer mode=)
+        mode: SolidifyMode controlling strictness. Overrides strict/coerce when set.
 
     Returns:
         An instance of target.
@@ -249,7 +285,13 @@ def solidify_file(
     data = _read_file(path)
 
     return solidify(
-        data, target, source=source, check=check, strict=strict, coerce=coerce
+        data,
+        target,
+        source=source,
+        check=check,
+        strict=strict,
+        coerce=coerce,
+        mode=mode,
     )
 
 

@@ -1,7 +1,26 @@
 """ConfigPipeline — fluent orchestrator for multi-source config loading and hot-reloading."""
 
+import logging
 import threading
 from typing import Any, Callable, Dict, List, Optional
+
+
+def _get_fdef_by_path(target_cls, dot_path: str):
+    """Traverse nested _field_defs to find the FieldDef at a dot-notation path.
+
+    Returns None if any segment of the path is not found.
+    """
+    parts = dot_path.split(".")
+    cls = target_cls
+    fdef = None
+    for part in parts:
+        if not hasattr(cls, "_field_defs"):
+            return None
+        fdef = cls._field_defs.get(part)
+        if fdef is None:
+            return None
+        cls = fdef.type_hint
+    return fdef
 
 
 class ConfigPipeline:
@@ -19,12 +38,14 @@ class ConfigPipeline:
         config = pipeline.load()
     """
 
-    def __init__(self, target: Any):
+    def __init__(self, target: Any, mode=None):
         """Initialize the pipeline.
 
         Args:
             target: A @layer_obj class or instance. If a class is given,
                 a fresh instance is created as the live config.
+            mode: Optional SolidifyMode applied to all solidify() calls inside
+                load() and _build_shadow(). Defaults to None (legacy behavior).
         """
         if isinstance(target, type):
             self._target_cls = target
@@ -33,6 +54,7 @@ class ConfigPipeline:
             self._target_cls = type(target)
             self._live = target
 
+        self._mode = mode
         self._providers: List = []
         self._reactors: Dict[str, List[Callable]] = {}
         self._mutator: Optional[Callable] = None
@@ -81,7 +103,9 @@ class ConfigPipeline:
             data = provider.read()
             if not data:
                 continue
-            overlay = solidify(data, self._target_cls, source=provider.source_name)
+            overlay = solidify(
+                data, self._target_cls, source=provider.source_name, mode=self._mode
+            )
             self._live.layer(overlay)
 
         self._live.freeze()
@@ -100,7 +124,9 @@ class ConfigPipeline:
             data = provider.read()
             if not data:
                 continue
-            overlay = solidify(data, self._target_cls, source=provider.source_name)
+            overlay = solidify(
+                data, self._target_cls, source=provider.source_name, mode=self._mode
+            )
             shadow.layer(overlay)
         shadow.freeze()
         return shadow
@@ -109,6 +135,21 @@ class ConfigPipeline:
         """Hot-reload: build shadow, diff, fire reactors, apply mutator."""
         shadow = self._build_shadow()
         diffs = self._live.diff(shadow, redact=False)
+        if not diffs:
+            return
+
+        # Filter out non-reloadable fields
+        filtered = []
+        for d in diffs:
+            fdef = _get_fdef_by_path(self._target_cls, d["field"])
+            if fdef is not None and not fdef.reloadable:
+                logging.warning(
+                    "layer: Skipped hot-reload for locked field '%s'", d["field"]
+                )
+                continue
+            filtered.append(d)
+        diffs = filtered
+
         if not diffs:
             return
 

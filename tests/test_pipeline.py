@@ -355,3 +355,86 @@ class TestOnChangeChaining:
 
         pipeline.on_change("*", noop)
         assert pipeline._mutator is noop
+
+
+# ---------------------------------------------------------------------------
+# reloadable=False field locking
+# ---------------------------------------------------------------------------
+
+
+class TestReloadableLocking:
+    def _make_locked_config(self):
+        """Config with a reloadable=False field."""
+        from layer import layer_obj, field
+
+        @layer_obj
+        class LockConfig:
+            log_level: str = field(str, default="INFO")
+            host: str = field(str, default="localhost", reloadable=False)
+
+        return LockConfig
+
+    def test_reloadable_false_skips_field_on_reload(self):
+        LockConfig = self._make_locked_config()
+        provider = MutableDictProvider({"host": "original", "log_level": "INFO"})
+        pipeline = ConfigPipeline(LockConfig).add_provider(provider)
+        pipeline.load()
+
+        provider.data["host"] = "changed"
+        pipeline._reload()
+
+        # host has reloadable=False — should not be updated
+        assert pipeline.config.host == "original"
+
+    def test_reloadable_true_still_mutates(self):
+        LockConfig = self._make_locked_config()
+        provider = MutableDictProvider({"host": "original", "log_level": "INFO"})
+        pipeline = ConfigPipeline(LockConfig).add_provider(provider)
+        pipeline.load()
+
+        provider.data["log_level"] = "DEBUG"
+        pipeline._reload()
+
+        # log_level is reloadable=True (default) — should update
+        assert pipeline.config.log_level == "DEBUG"
+
+    def test_reloadable_false_emits_warning(self, caplog):
+        import logging
+
+        LockConfig = self._make_locked_config()
+        provider = MutableDictProvider({"host": "original", "log_level": "INFO"})
+        pipeline = ConfigPipeline(LockConfig).add_provider(provider)
+        pipeline.load()
+
+        provider.data["host"] = "changed"
+        with caplog.at_level(logging.WARNING):
+            pipeline._reload()
+
+        assert any("host" in msg for msg in caplog.messages)
+
+    def test_reloadable_false_nested_field(self):
+        from layer import layer_obj, field
+
+        @layer_obj
+        class TlsConf:
+            cert: str = field(str, default=None, reloadable=False)
+            ca: str = field(str, default=None)
+
+        @layer_obj
+        class AppConf:
+            tls: TlsConf = field(TlsConf, default=None)
+
+        provider = MutableDictProvider(
+            {"tls": {"cert": "/original/cert", "ca": "/original/ca"}}
+        )
+        pipeline = ConfigPipeline(AppConf).add_provider(provider)
+        pipeline.load()
+
+        provider.data["tls"]["cert"] = "/changed/cert"
+        provider.data["tls"]["ca"] = "/changed/ca"
+        pipeline._reload()
+
+        # cert has reloadable=False — not updated
+        assert pipeline.config.tls.cert == "/original/cert"
+        # ca is reloadable=True (default) — updated
+        assert pipeline.config.tls.ca == "/changed/ca"

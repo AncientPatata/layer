@@ -1,3 +1,4 @@
+import dataclasses
 from copy import deepcopy
 from typing import Any, Type, Dict, List
 from collections import defaultdict
@@ -26,6 +27,7 @@ class FieldDef:
         alias: str = None,
         aliases: List[str] = None,
         env: str = None,
+        reloadable: bool = True,
     ):
         self.type_hint = type_hint
         self.default = default
@@ -37,6 +39,7 @@ class FieldDef:
         self.alias = alias
         self.aliases = aliases or []
         self.env = env
+        self.reloadable = reloadable
 
 
 def field(
@@ -50,6 +53,7 @@ def field(
     alias: str = None,
     aliases: List[str] = None,
     env: str = None,
+    reloadable: bool = True,
     **category_rules,
 ) -> Any:
     """Declares a configuration field with optional validation rules.
@@ -82,6 +86,7 @@ def field(
         alias=alias,
         aliases=aliases,
         env=env,
+        reloadable=reloadable,
     )
 
 
@@ -153,6 +158,21 @@ def root_validator(categories=None):
     return decorator
 
 
+def computed_field(fn):
+    """Marks a method as a computed (read-only, dynamic) field.
+
+    The method is exposed as a property and integrated into to_dict() and
+    explain(). Attempting to assign to a computed field raises AttributeError.
+
+    Usage:
+        @computed_field
+        def total_timeout(self) -> int:
+            return self.timeout_base * self.retry_count
+    """
+    fn._layer_computed = True
+    return fn
+
+
 def _is_layer_obj(cls_or_instance):
     """Check if something is a @layer_obj decorated class or instance of one."""
     cls = (
@@ -184,11 +204,12 @@ def layer_obj(cls):
         - ._field_defs               — schema metadata from field() declarations (class + instance)
     """
 
-    # Single pass: harvest FieldDefs, @parser, @validator, and @root_validator methods
+    # Single pass: harvest FieldDefs, @parser, @validator, @root_validator, @computed_field
     field_defs = {}
     parsers = {}  # field_name -> [fn, ...]
     method_validators = []  # [(field_names_tuple, categories_list, fn), ...]
     root_validators = []  # [(categories_list, fn), ...]
+    computed_fields = {}  # attr_name -> fn
 
     for attr_name in list(cls.__dict__.keys()):
         attr_value = cls.__dict__[attr_name]
@@ -196,7 +217,11 @@ def layer_obj(cls):
             field_defs[attr_name] = attr_value
             delattr(cls, attr_name)
         elif callable(attr_value):
-            if hasattr(attr_value, "_layer_parser_fields"):
+            if hasattr(attr_value, "_layer_computed"):
+                computed_fields[attr_name] = attr_value
+                # Replace with a property so it evaluates dynamically
+                setattr(cls, attr_name, property(attr_value))
+            elif hasattr(attr_value, "_layer_parser_fields"):
                 for fname in attr_value._layer_parser_fields:
                     parsers.setdefault(fname, []).append(attr_value)
                 delattr(cls, attr_name)
@@ -225,6 +250,7 @@ def layer_obj(cls):
         _parsers = parsers
         _method_validators = method_validators
         _root_validators = root_validators
+        _computed_fields = computed_fields
 
         def __init__(self, **kwargs):
             self._sources = defaultdict(SourceHistory)
@@ -255,6 +281,9 @@ def layer_obj(cls):
             if name.startswith("_"):
                 super().__setattr__(name, value)
                 return
+            # Guard computed fields
+            if name in type(self)._computed_fields:
+                raise AttributeError(f"Cannot set computed field '{name}'")
             # Check frozen
             if hasattr(self, "_frozen") and self._frozen and name in self._field_defs:
                 raise AttributeError(f"Cannot modify '{name}': config is frozen")
@@ -293,7 +322,7 @@ def layer_obj(cls):
                     )
                     base_val.layer(other_val, rules=nested_rules)
                     # Merge source info: mark as the other source since it was touched
-                    self._sources[name].push(other_source, getattr(self, name))  # TODO:
+                    self._sources[name].push(other_source, getattr(self, name).copy())
                     continue
 
                 if callable(rule) and not isinstance(rule, LayerRule):
@@ -456,6 +485,21 @@ def layer_obj(cls):
                         for e in self._sources[name].entries
                     ]
                 info.append(entry)
+            # Computed fields
+            import typing as _typing
+
+            for name, fn in type(self)._computed_fields.items():
+                return_type = _typing.get_type_hints(fn).get("return", _typing.Any)
+                info.append(
+                    {
+                        "field": name,
+                        "value": getattr(self, name),
+                        "source": "computed",
+                        "type": getattr(return_type, "__name__", str(return_type)),
+                        "default": None,
+                        "description": fn.__doc__,
+                    }
+                )
             return info
 
         def get(self, field_name: str, default: Any = None) -> Any:
@@ -559,7 +603,16 @@ def layer_obj(cls):
                 if _is_layer_obj(fdef.type_hint) and _is_layer_obj(val):
                     result[out_key] = val.to_dict(redact=redact, by_alias=by_alias)
                 else:
-                    result[out_key] = _maybe_redact(val, fdef, redact)
+                    val = _maybe_redact(val, fdef, redact)
+                    if dataclasses.is_dataclass(val) and not isinstance(val, type):
+                        result[out_key] = dataclasses.asdict(val)
+                    elif hasattr(val, "model_dump"):  # Pydantic v2
+                        result[out_key] = val.model_dump()
+                    else:
+                        result[out_key] = val
+            # Computed fields — always included, never redacted
+            for name in type(self)._computed_fields:
+                result[name] = getattr(self, name)
             return result
 
         def diff(self, other, redact=True):
