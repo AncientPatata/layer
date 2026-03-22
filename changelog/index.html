@@ -792,28 +792,33 @@
 
 
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
-<h1 id="changelog_1">Changelog<a class="headerlink" href="#changelog_1" title="Permanent link">&para;</a></h1>
-<p>All notable changes to this project are documented automatically by <a href="https://python-semantic-release.readthedocs.io/">python-semantic-release</a>.</p>
-<!-- semantic-release will insert new entries above this line -->
-
-<h2 id="010-2026-03-22">[0.1.0] — 2026-03-22<a class="headerlink" href="#010-2026-03-22" title="Permanent link">&para;</a></h2>
-<h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
+<h1 id="changelog_1">CHANGELOG<a class="headerlink" href="#changelog_1" title="Permanent link">&para;</a></h1>
+<h2 id="v001-2026-03-22">v0.0.1 (2026-03-22)<a class="headerlink" href="#v001-2026-03-22" title="Permanent link">&para;</a></h2>
+<h3 id="bug-fixes">Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permanent link">&para;</a></h3>
 <ul>
-<li><code>@layerclass</code> decorator for typed configuration schemas with <code>layer_obj</code> backward-compat alias</li>
-<li><code>field()</code> with categorical validators, secrets, aliases, <code>env</code> override, and <code>reloadable</code> flag</li>
-<li><code>@computed_field</code> for read-only derived properties integrated into <code>to_dict()</code> and <code>explain()</code></li>
-<li><code>@parser</code>, <code>@validator</code>, <code>@root_validator</code> class-level method decorators</li>
-<li><code>ConfigPipeline</code> with ordered provider layering, per-provider <code>LayerRule</code> overrides, and hot-reload</li>
-<li>Built-in providers: <code>FileProvider</code> (YAML/JSON/TOML), <code>EnvProvider</code>, <code>DotEnvProvider</code>, <code>SSMProvider</code>, <code>VaultProvider</code></li>
-<li>14 single-field validators: <code>require</code>, <code>optional</code>, <code>not_empty</code>, <code>one_of</code>, <code>in_range</code>, <code>is_port</code>, <code>is_url</code>, <code>is_positive</code>, <code>regex</code>, <code>min_length</code>, <code>max_length</code>, <code>path_exists</code>, <code>instance_of</code>, <code>each_item</code></li>
-<li>5 cross-field validators: <code>requires_if</code>, <code>requires_any</code>, <code>requires_all</code>, <code>mutually_exclusive</code>, <code>depends_on</code></li>
-<li><code>${field_name}</code> and <code>${nested.path}</code> variable interpolation with circular reference detection</li>
-<li>Full source provenance tracking via <code>SourceHistory</code> — every field records its full value chain</li>
-<li><code>SolidifyMode</code>: <code>LAX</code>, <code>STANDARD</code>, <code>STRICT</code> for controlling coercion strictness</li>
-<li>Exporters: <code>to_dotenv_template</code>, <code>to_configmap</code>, <code>to_json_schema</code></li>
-<li><code>BasePipelineObserver</code> with <code>LoggerObserver</code> for lifecycle metrics integration</li>
-<li>Exception hierarchy: <code>MissingDependencyError</code>, <code>HotReloadError</code>, <code>InterpolationCycleError</code></li>
-<li>Type coercion for <code>Optional[T]</code>, <code>Union[A, B]</code>, <code>List[T]</code>, <code>Dict[K, V]</code>, <code>Literal[...]</code>, dataclasses, Pydantic v2</li>
+<li>
+<p>Broken release workflow
+  (<a href="https://github.com/AncientPatata/layer/commit/e349cd0697f3cd7ef001359a0da2ca6995338fff"><code>e349cd0</code></a>)</p>
+</li>
+<li>
+<p>Ruff complaints
+  (<a href="https://github.com/AncientPatata/layer/commit/0dcff05000487cf69e1f145c2b35da06afaff11b"><code>0dcff05</code></a>)</p>
+</li>
+<li>
+<p>Trigger patch release
+  (<a href="https://github.com/AncientPatata/layer/commit/856b2ce4b487eb50837caf3b4c0dc988c203b23d"><code>856b2ce</code></a>)</p>
+</li>
+</ul>
+<h3 id="documentation">Documentation<a class="headerlink" href="#documentation" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p>Improvements
+  (<a href="https://github.com/AncientPatata/layer/commit/2d4a7a440da2b7df2a02b848d4de9e9b77f93a2f"><code>2d4a7a4</code></a>)</p>
+</li>
+<li>
+<p>Initial docs
+  (<a href="https://github.com/AncientPatata/layer/commit/04a555752c0bc886a9a178e6ac9c3865b48efc70"><code>04a5557</code></a>)</p>
+</li>
 </ul>
 
 
