@@ -3,7 +3,7 @@ layer: A standalone package for deterministic, multi-source configuration
 with categorical validation and layered merging.
 """
 
-from .core import layer_obj, field, FieldDef
+from .core import layer_obj, field, FieldDef, parser, validator, root_validator
 from .solidify import solidify, solidify_env, solidify_file, write_file
 from .layering import LayerRule
 from .validation import (
@@ -27,7 +27,13 @@ from .validation import (
     mutually_exclusive,
     depends_on,
 )
-from .exceptions import ConfigError, ValidationError, StructureError, LayeringError, CoercionError
+from .exceptions import (
+    ConfigError,
+    ValidationError,
+    StructureError,
+    LayeringError,
+    CoercionError,
+)
 from .interpolation import resolve_all, resolve_value, InterpolationError
 
 __all__ = [
@@ -35,6 +41,9 @@ __all__ = [
     "layer_obj",
     "field",
     "FieldDef",
+    "parser",
+    "validator",
+    "root_validator",
     # Solidification
     "solidify",
     "solidify_env",

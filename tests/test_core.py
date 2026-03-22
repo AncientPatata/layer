@@ -1,4 +1,5 @@
 """Tests for diff(), freeze(), and secret redaction."""
+
 import pytest
 from layer import layer_obj, field
 from conftest import AppConfig

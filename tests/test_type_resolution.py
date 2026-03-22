@@ -1,4 +1,5 @@
 """Tests for the advanced type resolution / coercion engine."""
+
 import dataclasses
 import pytest
 from typing import Dict, List, Literal, Optional, Tuple, Union
@@ -11,6 +12,7 @@ from layer.type_resolution import coerce
 # ---------------------------------------------------------------------------
 # List[T]
 # ---------------------------------------------------------------------------
+
 
 class TestListCoercion:
     def test_List_int_comma_separated(self):
@@ -34,6 +36,7 @@ class TestListCoercion:
 # Dict[K, V]
 # ---------------------------------------------------------------------------
 
+
 class TestDictCoercion:
     def test_Dict_str_int_from_key_value_string(self):
         assert coerce("a=1, b=2", Dict[str, int]) == {"a": 1, "b": 2}
@@ -54,6 +57,7 @@ class TestDictCoercion:
 # Optional[T]
 # ---------------------------------------------------------------------------
 
+
 class TestOptionalCoercion:
     def test_none_returns_none(self):
         assert coerce(None, Optional[int]) is None
@@ -68,6 +72,7 @@ class TestOptionalCoercion:
 # ---------------------------------------------------------------------------
 # Union[A, B]
 # ---------------------------------------------------------------------------
+
 
 class TestUnionCoercion:
     def test_tries_first_type_first(self):
@@ -94,6 +99,7 @@ class TestUnionCoercion:
 # Literal
 # ---------------------------------------------------------------------------
 
+
 class TestLiteralCoercion:
     def test_valid_value_passes_through(self):
         assert coerce("dev", Literal["dev", "prod"]) == "dev"
@@ -114,6 +120,7 @@ class TestLiteralCoercion:
 # Tuple[T, ...]
 # ---------------------------------------------------------------------------
 
+
 class TestTupleCoercion:
     def test_fixed_length_coerces_by_position(self):
         assert coerce("1, hello", Tuple[int, str]) == (1, "hello")
@@ -128,6 +135,7 @@ class TestTupleCoercion:
 # ---------------------------------------------------------------------------
 # Dataclass
 # ---------------------------------------------------------------------------
+
 
 class TestDataclassCoercion:
     def test_dict_instantiates_dataclass(self):
@@ -175,6 +183,7 @@ class TestPydanticCoercion:
 # ---------------------------------------------------------------------------
 # Integration: solidify() with advanced types
 # ---------------------------------------------------------------------------
+
 
 class TestSolidifyIntegration:
     def test_List_int_via_solidify(self):

@@ -73,6 +73,10 @@ def solidify(
                 except (ValueError, TypeError, CoercionError):
                     pass  # Leave as-is if coercion fails
 
+            # Apply @parser methods (after coercion, before write)
+            for parse_fn in type(instance)._parsers.get(field_name, []):
+                value = parse_fn(instance, value)
+
             setattr(instance, field_name, value)
             instance._sources[field_name].push(source, value)
 
@@ -133,6 +137,9 @@ def solidify_env(
             val = os.environ.get(env_key)
             if val is not None:
                 coerced = _coerce(val, fdef.type_hint, parser=fdef.parser)
+                # Apply @parser methods (after coercion, before write)
+                for parse_fn in type(instance)._parsers.get(name, []):
+                    coerced = parse_fn(instance, coerced)
                 setattr(instance, name, coerced)
                 instance._sources[name].push(f"env:{env_key}", coerced)
                 break  # Stop at first found in fallback chain

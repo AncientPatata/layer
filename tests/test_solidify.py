@@ -1,4 +1,5 @@
 """Tests for solidify() type coercion and solidify_file() / write_file() serialization."""
+
 import pytest
 from layer import layer_obj, field, solidify, solidify_file, write_file
 from conftest import FileConfig

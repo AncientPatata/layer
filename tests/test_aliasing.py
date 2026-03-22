@@ -1,4 +1,5 @@
 """Tests for field aliasing: alias, aliases, env, and to_dict(by_alias=True)."""
+
 import pytest
 from layer import layer_obj, field, solidify, solidify_env
 from layer.exceptions import StructureError
@@ -7,7 +8,9 @@ from layer.exceptions import StructureError
 @layer_obj
 class AliasConfig:
     api_key: str = field(str, alias="apiKey", default=None)
-    server_port: int = field(int, alias="server-port", aliases=["serverPort"], default=8080)
+    server_port: int = field(
+        int, alias="server-port", aliases=["serverPort"], default=8080
+    )
     user_name: str = field(str, default="admin")  # no alias — tests fallback behaviour
 
 

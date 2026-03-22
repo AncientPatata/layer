@@ -1,4 +1,5 @@
 """Tests for nested @layer_obj config objects."""
+
 import pytest
 from layer import layer_obj, field, solidify, solidify_file, write_file
 from layer.core import _is_layer_obj
@@ -41,7 +42,9 @@ class TestNestedLayering:
         base = AppConfig()
         base.endpoint = "http://base"
         base.tls.ca = "/base/ca"
-        overlay = solidify({"tls": {"cert": "/overlay/cert"}}, AppConfig, source="overlay")
+        overlay = solidify(
+            {"tls": {"cert": "/overlay/cert"}}, AppConfig, source="overlay"
+        )
         base.layer(overlay)
         assert base.tls.ca == "/base/ca"
         assert base.tls.cert == "/overlay/cert"

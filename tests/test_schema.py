@@ -1,4 +1,5 @@
 """Tests for JSON Schema generation."""
+
 import json
 import pytest
 from layer import layer_obj, field, require, one_of, in_range

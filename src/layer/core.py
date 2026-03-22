@@ -85,6 +85,74 @@ def field(
     )
 
 
+def parser(*field_names):
+    """Marks a method as a data parser for the specified field(s).
+
+    The method is called after type coercion but before the value is written to
+    the field. It receives the current value and must return the transformed value.
+    It runs during solidify(), solidify_env(), and set().
+
+    Usage:
+        @parser("endpoint")
+        def _clean_endpoint(self, value: str) -> str:
+            return value.strip().rstrip("/")
+    """
+
+    def decorator(fn):
+        fn._layer_parser_fields = field_names
+        return fn
+
+    return decorator
+
+
+def validator(*field_names, categories=None):
+    """Marks a method as a stateful validator for the specified field(s).
+
+    Called once per listed field during validate(). The method receives
+    (self, field_name, value) and should raise ValidationError if invalid.
+    If categories is omitted the validator runs on every validate() call (bare).
+
+    Usage:
+        @validator("cert_path", "key_path")
+        def _files_exist(self, field_name, value):
+            if value and not os.path.exists(value):
+                raise ValidationError(field_name, "File not found", "path_check", "bare")
+
+        @validator("cert_path", categories=["production"])
+        def _certs_match(self, field_name, value):
+            ...
+    """
+
+    def decorator(fn):
+        fn._layer_validator_fields = field_names
+        fn._layer_validator_categories = list(categories or [])
+        return fn
+
+    return decorator
+
+
+def root_validator(categories=None):
+    """Marks a method as a cross-field (root) validator.
+
+    Called at the end of validate() with no arguments besides self. Should
+    raise ConfigError (or ValidationError) if the overall state is invalid.
+    If categories is omitted the validator runs on every validate() call.
+
+    Usage:
+        @root_validator(categories=["database"])
+        def _check_connection(self):
+            if self.dsn and self.host:
+                raise ConfigError("Cannot specify both 'dsn' and 'host'.")
+    """
+
+    def decorator(fn):
+        fn._layer_root_validator = True
+        fn._layer_validator_categories = list(categories or [])
+        return fn
+
+    return decorator
+
+
 def _is_layer_obj(cls_or_instance):
     """Check if something is a @layer_obj decorated class or instance of one."""
     cls = (
@@ -116,18 +184,47 @@ def layer_obj(cls):
         - ._field_defs               — schema metadata from field() declarations (class + instance)
     """
 
-    # Extract field definitions from the class
+    # Single pass: harvest FieldDefs, @parser, @validator, and @root_validator methods
     field_defs = {}
+    parsers = {}  # field_name -> [fn, ...]
+    method_validators = []  # [(field_names_tuple, categories_list, fn), ...]
+    root_validators = []  # [(categories_list, fn), ...]
+
     for attr_name in list(cls.__dict__.keys()):
         attr_value = cls.__dict__[attr_name]
         if isinstance(attr_value, FieldDef):
             field_defs[attr_name] = attr_value
             delattr(cls, attr_name)
+        elif callable(attr_value):
+            if hasattr(attr_value, "_layer_parser_fields"):
+                for fname in attr_value._layer_parser_fields:
+                    parsers.setdefault(fname, []).append(attr_value)
+                delattr(cls, attr_name)
+            elif hasattr(attr_value, "_layer_validator_fields"):
+                method_validators.append(
+                    (
+                        attr_value._layer_validator_fields,
+                        attr_value._layer_validator_categories,
+                        attr_value,
+                    )
+                )
+                delattr(cls, attr_name)
+            elif hasattr(attr_value, "_layer_root_validator"):
+                root_validators.append(
+                    (
+                        attr_value._layer_validator_categories,
+                        attr_value,
+                    )
+                )
+                delattr(cls, attr_name)
 
     class WrappedConfig(cls):
         # Class-level attributes — accessible without instantiation
         _field_defs = field_defs
         _is_layer_obj_marker = True
+        _parsers = parsers
+        _method_validators = method_validators
+        _root_validators = root_validators
 
         def __init__(self, **kwargs):
             self._sources = defaultdict(SourceHistory)
@@ -251,7 +348,7 @@ def layer_obj(cls):
             if categories == "*":
                 categories = ["*"]
             check_all = categories == ["*"] if categories else False
-            cats_to_check = categories or []
+            cats_to_check = set(categories or [])
 
             for name, fdef in self._field_defs.items():
                 # Field filter
@@ -275,7 +372,7 @@ def layer_obj(cls):
                     if cat == "_bare":
                         continue
                     if check_all or cat in cats_to_check:
-                        rules_to_run.extend([(cat, r) for r in cat_rules])
+                        rules_to_run.extend([(cat, r) for r in cat_rules])  # type: ignore[arg-type]
 
                 # Execute rules
                 for cat_name, rule in rules_to_run:
@@ -284,6 +381,45 @@ def layer_obj(cls):
                     except ValidationError as e:
                         e.category = cat_name
                         errors.append(e)
+
+            # Phase 2: @validator methods
+            for field_names, validator_cats, fn in self._method_validators:
+                should_run = (
+                    not validator_cats
+                    or check_all
+                    or bool(cats_to_check & set(validator_cats))
+                )
+                if not should_run:
+                    continue
+                for fname in field_names:
+                    if fields is not None and fname not in fields:
+                        continue
+                    try:
+                        fn(self, fname, getattr(self, fname))
+                    except ValidationError as e:
+                        errors.append(e)
+
+            # Phase 3: @root_validator methods
+            from .exceptions import ConfigError as _ConfigError
+
+            for validator_cats, fn in self._root_validators:
+                should_run = (
+                    not validator_cats
+                    or check_all
+                    or bool(cats_to_check & set(validator_cats))
+                )
+                if not should_run:
+                    continue
+                try:
+                    fn(self)
+                except ValidationError as e:
+                    errors.append(e)
+                except _ConfigError as e:
+                    errors.append(
+                        ValidationError(
+                            "__root__", str(e), fn.__name__, "root_validator"
+                        )
+                    )
 
             return ValidationResult(errors)
 
@@ -379,6 +515,10 @@ def layer_obj(cls):
                 from .solidify import _coerce
 
                 value = _coerce(value, fdef.type_hint, parser=fdef.parser)
+
+            # Apply @parser methods (after coercion, before write)
+            for parse_fn in type(self)._parsers.get(field_name, []):
+                value = parse_fn(self, value)
 
             setattr(self, field_name, value)
             self._sources[field_name].push(source, value)
