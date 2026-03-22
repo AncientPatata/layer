@@ -1126,16 +1126,18 @@
 <p>This is useful when you're debugging a value that was set by multiple providers and you want to understand the full override chain, not just the winner.</p>
 <h2 id="explain-and-diff"><code>explain()</code> and <code>diff()</code><a class="headerlink" href="#explain-and-diff" title="Permanent link">&para;</a></h2>
 <h3 id="explain"><code>.explain()</code><a class="headerlink" href="#explain" title="Permanent link">&para;</a></h3>
-<p>Provides a structured overview of every field — current value, source, type, description, and validation categories. Secret fields are automatically redacted:</p>
+<p>Provides a structured overview of every field — current value, source, type, description, and validation categories. <code>explain()</code> redacts <code>secret=True</code> fields by default, since it's primarily a debugging and logging tool. Computed fields are never redacted.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">config</span><span class="o">.</span><span class="n">explain</span><span class="p">()</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="c1"># [</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="c1">#   {&quot;field&quot;: &quot;host&quot;,     &quot;value&quot;: &quot;db.prod.example.com&quot;, &quot;source&quot;: &quot;env:APP_HOST&quot;,   ...},</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1">#   {&quot;field&quot;: &quot;port&quot;,     &quot;value&quot;: 5432,                  &quot;source&quot;: &quot;config.yml&quot;,     ...},</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="c1">#   {&quot;field&quot;: &quot;password&quot;, &quot;value&quot;: &quot;***&quot;,                 &quot;source&quot;: &quot;env:APP_PASSWORD&quot;,...},</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="c1">#   {&quot;field&quot;: &quot;dsn&quot;,      &quot;value&quot;: &quot;***&quot;,                 &quot;source&quot;: &quot;computed&quot;,       ...},</span>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="c1"># ]</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="c1">#   {&quot;field&quot;: &quot;host&quot;,     &quot;value&quot;: &quot;db.prod.example.com&quot;, &quot;source&quot;: &quot;env:APP_HOST&quot;,    ...},</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1">#   {&quot;field&quot;: &quot;port&quot;,     &quot;value&quot;: 5432,                  &quot;source&quot;: &quot;config.yml&quot;,      ...},</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="c1">#   {&quot;field&quot;: &quot;password&quot;, &quot;value&quot;: &quot;***&quot;,                 &quot;source&quot;: &quot;env:APP_PASSWORD&quot;, ...},</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="c1">#   {&quot;field&quot;: &quot;dsn&quot;,      &quot;value&quot;: &quot;postgresql://db.prod.example.com:5432/myapp&quot;,</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="c1">#                                                         &quot;source&quot;: &quot;computed&quot;,         ...},</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="c1"># ]</span>
 </code></pre></div>
 <p>Pass <code>full_history=True</code> to include the complete source chain for every field — the same data as <code>source_history_of()</code>, but for all fields at once. Pass <code>redact=False</code> if you need the real values in a trusted context (audit tooling, debug CLIs).</p>
+<p><code>to_dict()</code> behaves differently: it defaults to <code>redact=False</code> because it's commonly used for serialization back to disk, where you want the actual values. Pass <code>redact=True</code> explicitly when using <code>to_dict()</code> for logging or display.</p>
 <h3 id="diff"><code>.diff()</code><a class="headerlink" href="#diff" title="Permanent link">&para;</a></h3>
 <p>Compares two config instances and returns a structured list of what changed and where each value came from:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">before</span> <span class="o">=</span> <span class="n">pipeline</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
