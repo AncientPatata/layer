@@ -31,3 +31,12 @@ class InterpolationError(ConfigError):
     """Raised on unresolvable or circular references."""
 
     pass
+
+
+class CoercionError(ConfigError):
+    """Raised when a value cannot be coerced to the target type.
+
+    Used internally so Union handling can try the next candidate type on failure.
+    """
+
+    pass

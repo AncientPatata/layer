@@ -23,6 +23,9 @@ class FieldDef:
         description: str = None,
         secret: bool = False,
         parser: Any = None,
+        alias: str = None,
+        aliases: List[str] = None,
+        env: str = None,
     ):
         self.type_hint = type_hint
         self.default = default
@@ -31,6 +34,9 @@ class FieldDef:
         self.description = description
         self.secret = secret
         self.parser = parser
+        self.alias = alias
+        self.aliases = aliases or []
+        self.env = env
 
 
 def field(
@@ -41,6 +47,9 @@ def field(
     description: str = None,
     secret: bool = False,
     parser: Any = None,
+    alias: str = None,
+    aliases: List[str] = None,
+    env: str = None,
     **category_rules,
 ) -> Any:
     """Declares a configuration field with optional validation rules.
@@ -51,6 +60,9 @@ def field(
         default: Default value for the field.
         meta: Arbitrary metadata dict (e.g. {"cli_option": click.option(...)}).
         description: Human-readable description of the field.
+        alias: Alternate name used when loading from dicts/JSON/YAML (e.g. "apiKey").
+        aliases: Additional fallback names tried in order after alias.
+        env: Explicit environment variable name, overrides PREFIX_FIELD_NAME convention.
         **category_rules: Named categories mapping to lists of validators.
             e.g. cluster=[require], common=[one_of("json", "yaml")]
 
@@ -67,6 +79,9 @@ def field(
         description,
         secret=secret,
         parser=parser,
+        alias=alias,
+        aliases=aliases,
+        env=env,
     )
 
 
@@ -385,8 +400,13 @@ def layer_obj(cls):
             new._sources = {k: deepcopy(v) for k, v in self._sources.items()}
             return new
 
-        def to_dict(self, redact=False):
+        def to_dict(self, redact=False, by_alias=False):
             """Export current values as a plain dict. Recursively converts nested @layer_obj.
+
+            Args:
+                redact: If True, replace secret field values with "***".
+                by_alias: If True, use each field's alias as the output key (falls back
+                    to the field name when no alias is defined).
 
             Design note:
             to_dict() defaults to redact=False because it's often used for serialization back to disk.
@@ -394,11 +414,12 @@ def layer_obj(cls):
             """
             result = {}
             for name, fdef in self._field_defs.items():
+                out_key = (fdef.alias or name) if by_alias else name
                 val = getattr(self, name)
                 if _is_layer_obj(fdef.type_hint) and _is_layer_obj(val):
-                    result[name] = val.to_dict(redact=redact)
+                    result[out_key] = val.to_dict(redact=redact, by_alias=by_alias)
                 else:
-                    result[name] = _maybe_redact(val, fdef, redact)
+                    result[out_key] = _maybe_redact(val, fdef, redact)
             return result
 
         def diff(self, other, redact=True):

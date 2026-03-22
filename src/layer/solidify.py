@@ -1,6 +1,7 @@
 import os
 from typing import Type, Dict, Any, Optional, List
-from .exceptions import StructureError
+from .exceptions import StructureError, CoercionError
+from .type_resolution import coerce as _coerce
 
 
 def _is_layer_obj_type(cls):
@@ -10,60 +11,6 @@ def _is_layer_obj_type(cls):
         and hasattr(cls, "_field_defs")
         and hasattr(cls, "_is_layer_obj_marker")
     )
-
-
-def _coerce(value, type_hint, parser=None):
-    # Custom parser takes priority
-    if parser is not None:
-        return parser(value)
-
-    if isinstance(value, type_hint):
-        return value
-
-    if value is None:
-        return value
-
-    if isinstance(value, str):
-        if type_hint is bool:
-            return value.lower() in ("true", "1", "yes")
-        if type_hint is int:
-            return int(value)
-        if type_hint is float:
-            return float(value)
-
-        # NEW: list coercion from comma-separated strings
-        if type_hint is list:
-            # Try JSON first (handles ["a","b","c"])
-            stripped = value.strip()
-            if stripped.startswith("["):
-                import json
-
-                try:
-                    return json.loads(stripped)
-                except (json.JSONDecodeError, ValueError):
-                    pass
-            # Fallback: comma-separated
-            return [item.strip() for item in value.split(",") if item.strip()]
-
-        # NEW: dict coercion from key=value strings or JSON
-        if type_hint is dict:
-            stripped = value.strip()
-            if stripped.startswith("{"):
-                import json
-
-                try:
-                    return json.loads(stripped)
-                except (json.JSONDecodeError, ValueError):
-                    pass
-            # Fallback: key=val,key=val
-            result = {}
-            for pair in value.split(","):
-                if "=" in pair:
-                    k, v = pair.split("=", 1)
-                    result[k.strip()] = v.strip()
-            return result if result else value
-
-    return value
 
 
 def solidify(
@@ -89,31 +36,45 @@ def solidify(
     """
     instance = target()
 
+    # Pre-compute reverse alias map: alias_string -> canonical field name
+    alias_map: Dict[str, str] = {}
+    for field_name, fdef in instance._field_defs.items():
+        if fdef.alias:
+            alias_map[fdef.alias] = field_name
+        for a in fdef.aliases:
+            alias_map[a] = field_name
+
     for key, value in data.items():
-        # Handle kebab-case and SCREAMING_SNAKE_CASE to snake_case
+        # Resolve canonical field name: try exact match, then alias map, then kebab/case normalization
         normalized_key = key.replace("-", "_").lower()
-
         if normalized_key in instance._field_defs:
-            fdef = instance._field_defs[normalized_key]
-
-            # Nested @layer_obj: recursively solidify if value is a dict
-            if _is_layer_obj_type(fdef.type_hint) and isinstance(value, dict):
-                nested = solidify(value, fdef.type_hint, source=source, coerce=coerce)
-                setattr(instance, normalized_key, nested)
-                instance._sources[normalized_key].push(source, nested)
-            else:
-                # Coerce if requested
-                if coerce and fdef.type_hint is not None:
-                    try:
-                        value = _coerce(value, fdef.type_hint, parser=fdef.parser)
-                    except (ValueError, TypeError):
-                        pass  # Leave as-is if coercion fails
-
-                setattr(instance, normalized_key, value)
-                instance._sources[normalized_key].push(source, value)
-
+            field_name = normalized_key
+        elif key in alias_map:
+            field_name = alias_map[key]
+        elif normalized_key in alias_map:
+            field_name = alias_map[normalized_key]
         elif strict:
             raise StructureError(f"Unknown key '{key}' found in source '{source}'")
+        else:
+            continue
+
+        fdef = instance._field_defs[field_name]
+
+        # Nested @layer_obj: recursively solidify if value is a dict
+        if _is_layer_obj_type(fdef.type_hint) and isinstance(value, dict):
+            nested = solidify(value, fdef.type_hint, source=source, coerce=coerce)
+            setattr(instance, field_name, nested)
+            instance._sources[field_name].push(source, nested)
+        else:
+            # Coerce if requested
+            if coerce and fdef.type_hint is not None:
+                try:
+                    value = _coerce(value, fdef.type_hint, parser=fdef.parser)
+                except (ValueError, TypeError, CoercionError):
+                    pass  # Leave as-is if coercion fails
+
+            setattr(instance, field_name, value)
+            instance._sources[field_name].push(source, value)
 
     if check:
         instance.validate(check).raise_if_invalid()
@@ -155,14 +116,18 @@ def solidify_env(
                 instance._sources[name].push(f"env:{sub_prefix}_*", current)
             continue
 
-        # Check custom mapping first
-        env_keys = key_map.get(name)
-        if isinstance(env_keys, str):
-            env_keys = [env_keys]
-
-        # Default mapping: PREFIX_FIELD_NAME
-        if not env_keys:
-            env_keys = [f"{prefix.upper()}{separator}{name.upper()}"]
+        # Determine env var name(s) to check, in priority order:
+        # 1. fdef.env (explicit override on the field)
+        # 2. key_map (caller-supplied override)
+        # 3. PREFIX_FIELD_NAME convention
+        if fdef.env:
+            env_keys = [fdef.env]
+        else:
+            env_keys = key_map.get(name)
+            if isinstance(env_keys, str):
+                env_keys = [env_keys]
+            if not env_keys:
+                env_keys = [f"{prefix.upper()}{separator}{name.upper()}"]
 
         for env_key in env_keys:
             val = os.environ.get(env_key)
@@ -260,13 +225,14 @@ def solidify_file(
     )
 
 
-def write_file(config, path: str, format: str = None):
+def write_file(config, path: str, format: str = None, by_alias: bool = False):
     """Write a config object to a file.
 
     Args:
         config: A @layer_obj instance.
         path: Output file path.
         format: "yaml", "json", or "toml". Auto-detected from extension if None.
+        by_alias: If True, use field aliases as keys in the output file.
     """
     if format is None:
         ext = str(path).rsplit(".", 1)[-1].lower() if "." in str(path) else ""
@@ -274,7 +240,7 @@ def write_file(config, path: str, format: str = None):
             ext
         )
 
-    data = config.to_dict()
+    data = config.to_dict(by_alias=by_alias)
 
     if format == "yaml":
         try:

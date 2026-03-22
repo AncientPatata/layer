@@ -27,7 +27,7 @@ from .validation import (
     mutually_exclusive,
     depends_on,
 )
-from .exceptions import ConfigError, ValidationError, StructureError, LayeringError
+from .exceptions import ConfigError, ValidationError, StructureError, LayeringError, CoercionError
 from .interpolation import resolve_all, resolve_value, InterpolationError
 
 __all__ = [
@@ -68,6 +68,7 @@ __all__ = [
     "ValidationError",
     "StructureError",
     "LayeringError",
+    "CoercionError",
     # Interpolation
     "resolve_all",
     "resolve_value",
