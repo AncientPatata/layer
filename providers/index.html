@@ -1213,7 +1213,7 @@
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">EnvProvider</span><span class="p">(</span><span class="s2">&quot;APP&quot;</span><span class="p">,</span> <span class="n">separator</span><span class="o">=</span><span class="s2">&quot;__&quot;</span><span class="p">)</span>    <span class="c1"># APP__DATABASE__HOST → database.host</span>
 </code></pre></div>
 <h3 id="dotenvprovider">DotEnvProvider<a class="headerlink" href="#dotenvprovider" title="Permanent link">&para;</a></h3>
-<p>Reads a <code>.env</code> file and injects its variables into <code>os.environ</code>. Chain it with <code>EnvProvider</code> so prefix-stripping is handled consistently. Requires <code>pip install layer[dotenv]</code>.</p>
+<p>Reads a <code>.env</code> file and injects its variables into <code>os.environ</code>. Chain it with <code>EnvProvider</code> so prefix-stripping is handled consistently. Requires <code>pip install layerconf[dotenv]</code>.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">layer.providers</span><span class="w"> </span><span class="kn">import</span> <span class="n">DotEnvProvider</span><span class="p">,</span> <span class="n">EnvProvider</span>
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
 <a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">pipeline</span> <span class="o">=</span> <span class="p">(</span>
@@ -1223,7 +1223,7 @@
 <a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="p">)</span>
 </code></pre></div>
 <h3 id="ssmprovider">SSMProvider<a class="headerlink" href="#ssmprovider" title="Permanent link">&para;</a></h3>
-<p>Reads all parameters under an AWS SSM path prefix. Requires <code>pip install layer[aws]</code>.</p>
+<p>Reads all parameters under an AWS SSM path prefix. Requires <code>pip install layerconf[aws]</code>.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">layer.providers</span><span class="w"> </span><span class="kn">import</span> <span class="n">SSMProvider</span>
 <a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
 <a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">SSMProvider</span><span class="p">(</span><span class="s2">&quot;/myapp/prod/&quot;</span><span class="p">)</span>
@@ -1231,7 +1231,7 @@
 <a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="c1"># /myapp/prod/api_key        →  api_key</span>
 </code></pre></div>
 <h3 id="vaultprovider">VaultProvider<a class="headerlink" href="#vaultprovider" title="Permanent link">&para;</a></h3>
-<p>Reads a KV v2 secret from HashiCorp Vault. Requires <code>pip install layer[vault]</code>.</p>
+<p>Reads a KV v2 secret from HashiCorp Vault. Requires <code>pip install layerconf[vault]</code>.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">layer.providers</span><span class="w"> </span><span class="kn">import</span> <span class="n">VaultProvider</span>
 <a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
 <a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">VaultProvider</span><span class="p">(</span>
@@ -1258,7 +1258,7 @@
 <p><code>PRESERVE</code> means "the first source to set this field wins." Useful when you want an environment variable to set a value that no later provider (including defaults) should be able to change.</p>
 <h2 id="hot-reloading">Hot Reloading<a class="headerlink" href="#hot-reloading" title="Permanent link">&para;</a></h2>
 <p>Layer supports live config updates without restarting your application. When a watched provider detects a change, the pipeline rebuilds a shadow config, diffs it against the live config, fires any registered callbacks, and atomically applies the changes. Fields marked <code>reloadable=False</code> are never updated.</p>
-<p>Requires <code>pip install layer[watch]</code>.</p>
+<p>Requires <code>pip install layerconf[watch]</code>.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">pipeline</span> <span class="o">=</span> <span class="p">(</span>
 <a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    <span class="n">ConfigPipeline</span><span class="p">(</span><span class="n">AppConfig</span><span class="p">)</span>
 <a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    <span class="o">.</span><span class="n">add_provider</span><span class="p">(</span><span class="n">FileProvider</span><span class="p">(</span><span class="s2">&quot;config.yml&quot;</span><span class="p">,</span> <span class="n">watch</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>

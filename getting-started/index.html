@@ -997,13 +997,13 @@
 <p>Your application reads config from a base YAML file, with local overrides in a second file, and production secrets injected as environment variables. Without a structured pipeline, you end up with <code>os.getenv()</code> scattered through your code, <code>dict.update()</code> calls that silently clobber each other, and no way to answer: <em>why does this field have this value right now?</em></p>
 <p>Layer solves this by giving you a typed pipeline with a defined merge order, full provenance tracking on every field, and validation that runs explicitly when you ask for it.</p>
 <h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>layer
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>layerconf
 </code></pre></div>
 <p>Optional extras for specific providers:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>pip<span class="w"> </span>install<span class="w"> </span>layer<span class="o">[</span>watch<span class="o">]</span><span class="w">   </span><span class="c1"># hot-reload via watchdog</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>pip<span class="w"> </span>install<span class="w"> </span>layer<span class="o">[</span>dotenv<span class="o">]</span><span class="w">  </span><span class="c1"># DotEnvProvider</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>pip<span class="w"> </span>install<span class="w"> </span>layer<span class="o">[</span>aws<span class="o">]</span><span class="w">     </span><span class="c1"># SSMProvider (boto3)</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>pip<span class="w"> </span>install<span class="w"> </span>layer<span class="o">[</span>vault<span class="o">]</span><span class="w">   </span><span class="c1"># VaultProvider (hvac)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>pip<span class="w"> </span>install<span class="w"> </span>layerconf<span class="o">[</span>watch<span class="o">]</span><span class="w">   </span><span class="c1"># hot-reload via watchdog</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>pip<span class="w"> </span>install<span class="w"> </span>layerconf<span class="o">[</span>dotenv<span class="o">]</span><span class="w">  </span><span class="c1"># DotEnvProvider</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>pip<span class="w"> </span>install<span class="w"> </span>layerconf<span class="o">[</span>aws<span class="o">]</span><span class="w">     </span><span class="c1"># SSMProvider (boto3)</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>pip<span class="w"> </span>install<span class="w"> </span>layerconf<span class="o">[</span>vault<span class="o">]</span><span class="w">   </span><span class="c1"># VaultProvider (hvac)</span>
 </code></pre></div>
 <h2 id="define-a-schema">Define a Schema<a class="headerlink" href="#define-a-schema" title="Permanent link">&para;</a></h2>
 <p>Use <code>@layerclass</code> to declare your config as a typed class. Each field is declared with <code>field()</code>, which takes a type hint, a default, and any validation rules or metadata you want to attach.</p>
