@@ -91,6 +91,61 @@ def _render_dotenv_fields(config_cls, prefix: str, lines: list) -> None:
         lines.append(f"{var_name}={default_str}")
 
 
+def to_yaml(config_cls: Type) -> str:
+    """Generate a YAML configuration template from a ``@layerclass``.
+
+    Non-secret fields are emitted with their default values. Secret fields
+    are omitted and replaced with a commented-out placeholder. Field
+    descriptions are emitted as YAML comments above the fields.
+
+    Args:
+        config_cls: A ``@layerclass`` decorated class.
+
+    Returns:
+        A YAML string suitable for saving as ``config.yml``.
+
+    Example:
+        print(to_yaml(AppConfig))
+        # # Database host
+        # host: localhost
+        # port: 5432
+    """
+    lines = []
+    _render_yaml_fields(config_cls, 0, lines)
+    return "\n".join(lines)
+
+
+def _render_yaml_fields(config_cls, indent: int, lines: list) -> None:
+    """Recursively render fields from a @layerclass into YAML lines."""
+    from .core import _is_layerclass
+    import yaml
+
+    prefix = "  " * indent
+
+    for name, fdef in config_cls._field_defs.items():
+        if _is_layerclass(fdef.type_hint):
+            if fdef.description:
+                for desc_line in fdef.description.split("\n"):
+                    lines.append(f"{prefix}# {desc_line}")
+            lines.append(f"{prefix}{name}:")
+            _render_yaml_fields(fdef.type_hint, indent + 1, lines)
+            continue
+
+        if fdef.description:
+            for desc_line in fdef.description.split("\n"):
+                lines.append(f"{prefix}# {desc_line}")
+
+        if fdef.secret:
+            lines.append(f"{prefix}# {name}: <secret>")
+            continue
+
+        val_dump = yaml.dump(
+            {name: fdef.default}, default_flow_style=False, sort_keys=False
+        ).rstrip()
+        for line in val_dump.split("\n"):
+            lines.append(f"{prefix}{line}")
+
+
 def to_configmap(config_cls: Type, name: str = "app-config") -> str:
     """Generate a Kubernetes ConfigMap YAML string from a ``@layerclass``.
 
@@ -148,9 +203,7 @@ def _render_configmap_fields(config_cls, prefix: str, lines: list) -> None:
             value_str = str(fdef.default)
 
         # YAML: quote values that look like numbers to preserve string type
-        if value_str.isdigit() or (
-            value_str.replace(".", "", 1).isdigit() and "." in value_str
-        ):
+        if value_str.isdigit() or (value_str.replace(".", "", 1).isdigit() and "." in value_str):
             lines.append(f'  {key}: "{value_str}"')
         else:
             lines.append(f"  {key}: {value_str}")

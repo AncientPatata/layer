@@ -1,5 +1,11 @@
 # Layer
 
+[![CI](https://github.com/ancientpatata/layer/actions/workflows/ci.yml/badge.svg)](https://github.com/ancientpatata/layer/actions/workflows/ci.yml)
+[![PyPI version](https://img.shields.io/pypi/v/layer.svg)](https://pypi.org/project/layer/)
+[![Python versions](https://img.shields.io/pypi/pyversions/layer.svg)](https://pypi.org/project/layer/)
+[![Docs](https://img.shields.io/badge/docs-mkdocs-blue)](https://ancientpatata.github.io/layer/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/ancientpatata/layer/blob/main/LICENSE)
+
 **Deterministic, multi-source configuration with validation, provenance tracking, and hot-reloading.**
 
 Layer is a Python library for applications that pull config from multiple places (files, environment variables, AWS SSM, HashiCorp Vault) and need to merge them reliably, validate them explicitly, and understand exactly where every value came from.

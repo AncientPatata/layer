@@ -92,9 +92,7 @@ class TLSConfig:
     @validator("cert", "key")
     def _files_exist(self, field_name, value):
         if value and not os.path.exists(value):
-            raise ValidationError(
-                field_name, f"File not found: {value}", "path_check", "bare"
-            )
+            raise ValidationError(field_name, f"File not found: {value}", "path_check", "bare")
 
     @validator("cert", categories=["production"])
     def _cert_required_in_prod(self, field_name, value):

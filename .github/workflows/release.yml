@@ -1,0 +1,54 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  ci:
+    name: Run CI checks
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    name: Semantic Release + PyPI
+    needs: ci
+    runs-on: ubuntu-latest
+    concurrency:
+      group: release
+      cancel-in-progress: false
+    permissions:
+      contents: write   # PSR pushes version bump commit + tag
+      id-token: write   # OIDC for PyPI Trusted Publishing
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # PSR needs full history to find the last version tag
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install python-semantic-release
+        run: pip install "python-semantic-release==9.*"
+
+      - name: Run semantic-release
+        id: semrel
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: semantic-release version --push --changelog --vcs-release
+
+      - name: Build distribution
+        if: steps.semrel.outputs.released == 'true'
+        run: uv build
+
+      - name: Publish to PyPI (Trusted Publishing)
+        if: steps.semrel.outputs.released == 'true'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/

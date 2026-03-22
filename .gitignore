@@ -1,3 +1,5 @@
+.vscode/
+
 # Python-generated files
 __pycache__/
 *.py[oc]
@@ -11,3 +13,6 @@ wheels/
 
 # Planning
 planning_docs/
+
+# docs
+site/

@@ -41,9 +41,7 @@ class TestNestedLayering:
         base = AppConfig()
         base.endpoint = "http://base"
         base.tls.ca = "/base/ca"
-        overlay = solidify(
-            {"tls": {"cert": "/overlay/cert"}}, AppConfig, source="overlay"
-        )
+        overlay = solidify({"tls": {"cert": "/overlay/cert"}}, AppConfig, source="overlay")
         base.layer(overlay)
         assert base.tls.ca == "/base/ca"
         assert base.tls.cert == "/overlay/cert"

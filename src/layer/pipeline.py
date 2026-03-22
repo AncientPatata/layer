@@ -83,6 +83,7 @@ class ConfigPipeline:
 
         if logger is not None:
             from .observers import LoggerObserver
+
             self._observer = LoggerObserver(logger)
         else:
             self._observer = observer  # May be None or a BasePipelineObserver
@@ -155,9 +156,7 @@ class ConfigPipeline:
                 self._observer.on_provider_read(provider.source_name, data)
             if not data:
                 continue
-            overlay = solidify(
-                data, self._target_cls, source=provider.source_name, mode=self._mode
-            )
+            overlay = solidify(data, self._target_cls, source=provider.source_name, mode=self._mode)
             self._live.layer(overlay, rules=rules)
             if self._observer:
                 self._observer.on_layer_merged(provider.source_name, rules)
@@ -194,9 +193,7 @@ class ConfigPipeline:
             data = provider.read()
             if not data:
                 continue
-            overlay = solidify(
-                data, self._target_cls, source=provider.source_name, mode=self._mode
-            )
+            overlay = solidify(data, self._target_cls, source=provider.source_name, mode=self._mode)
             shadow.layer(overlay, rules=rules)
         shadow.resolve()
         shadow.freeze()
@@ -217,9 +214,7 @@ class ConfigPipeline:
         for d in diffs:
             fdef = _get_fdef_by_path(self._target_cls, d["field"])
             if fdef is not None and not fdef.reloadable:
-                logging.warning(
-                    "layer: Skipped hot-reload for locked field '%s'", d["field"]
-                )
+                logging.warning("layer: Skipped hot-reload for locked field '%s'", d["field"])
                 if self._observer:
                     self._observer.on_hot_reload_locked(d["field"])
                 continue
@@ -264,6 +259,7 @@ class ConfigPipeline:
             from watchdog.events import FileSystemEventHandler
         except ImportError:
             from .exceptions import MissingDependencyError
+
             raise MissingDependencyError(
                 "watchdog is required for hot-reloading: pip install layer[watch]"
             )

@@ -91,9 +91,7 @@ def coerce(value: Any, type_hint: Type, parser=None) -> Any:
         allowed = get_args(type_hint)
         if value in allowed:
             return value
-        raise StructureError(
-            f"Value {value!r} is not one of the allowed Literal values: {allowed}"
-        )
+        raise StructureError(f"Value {value!r} is not one of the allowed Literal values: {allowed}")
 
     if origin is list:
         args = get_args(type_hint)
@@ -103,9 +101,7 @@ def coerce(value: Any, type_hint: Type, parser=None) -> Any:
         elif isinstance(value, list):
             parsed = value
         else:
-            raise CoercionError(
-                f"Cannot coerce {value!r} (type {type(value).__name__}) to list"
-            )
+            raise CoercionError(f"Cannot coerce {value!r} (type {type(value).__name__}) to list")
         if item_type is not None:
             return [coerce(item, item_type) for item in parsed]
         return parsed
@@ -119,14 +115,10 @@ def coerce(value: Any, type_hint: Type, parser=None) -> Any:
         elif isinstance(value, dict):
             parsed = value
         else:
-            raise CoercionError(
-                f"Cannot coerce {value!r} (type {type(value).__name__}) to dict"
-            )
+            raise CoercionError(f"Cannot coerce {value!r} (type {type(value).__name__}) to dict")
         if key_type is not None or val_type is not None:
             return {
-                (coerce(k, key_type) if key_type else k): (
-                    coerce(v, val_type) if val_type else v
-                )
+                (coerce(k, key_type) if key_type else k): (coerce(v, val_type) if val_type else v)
                 for k, v in parsed.items()
             }
         return parsed
@@ -138,9 +130,7 @@ def coerce(value: Any, type_hint: Type, parser=None) -> Any:
         elif isinstance(value, (list, tuple)):
             parsed = list(value)
         else:
-            raise CoercionError(
-                f"Cannot coerce {value!r} (type {type(value).__name__}) to tuple"
-            )
+            raise CoercionError(f"Cannot coerce {value!r} (type {type(value).__name__}) to tuple")
         if args:
             # Tuple[T, ...] — variable-length homogeneous
             if len(args) == 2 and args[1] is Ellipsis:

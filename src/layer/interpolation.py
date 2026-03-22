@@ -87,18 +87,12 @@ def resolve_all(config) -> None:
             setattr(
                 config,
                 name,
-                [
-                    resolve_value(item, config) if isinstance(item, str) else item
-                    for item in val
-                ],
+                [resolve_value(item, config) if isinstance(item, str) else item for item in val],
             )
 
         elif isinstance(val, dict):
             setattr(
                 config,
                 name,
-                {
-                    k: resolve_value(v, config) if isinstance(v, str) else v
-                    for k, v in val.items()
-                },
+                {k: resolve_value(v, config) if isinstance(v, str) else v for k, v in val.items()},
             )

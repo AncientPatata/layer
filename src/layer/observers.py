@@ -85,9 +85,7 @@ class LoggerObserver(BasePipelineObserver):
         self._logger = logger
 
     def on_provider_read(self, provider_name: str, data: dict) -> None:
-        self._logger.debug(
-            "layer: provider '%s' read %d key(s)", provider_name, len(data)
-        )
+        self._logger.debug("layer: provider '%s' read %d key(s)", provider_name, len(data))
 
     def on_coercion_error(
         self, field: str, value: Any, target_type: type, error: Exception
@@ -107,9 +105,7 @@ class LoggerObserver(BasePipelineObserver):
 
     def on_hot_reload_triggered(self, diffs: list) -> None:
         fields = [d["field"] for d in diffs]
-        self._logger.info(
-            "layer: hot-reload detected %d change(s): %s", len(diffs), fields
-        )
+        self._logger.info("layer: hot-reload detected %d change(s): %s", len(diffs), fields)
 
     def on_hot_reload_locked(self, field: str) -> None:
         self._logger.warning(

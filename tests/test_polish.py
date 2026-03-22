@@ -50,6 +50,7 @@ class TestLayerclassRename:
 
     def test_layer_obj_backward_compat_alias(self):
         """layer_obj must still work as a backward-compat alias."""
+
         @layer_obj
         class LegacyConf:
             port: int = field(int, default=9090)
@@ -66,6 +67,7 @@ class TestLayerclassRename:
 
     def test_layer_obj_marker_backward_compat(self):
         """_is_layer_obj_marker must still be present for backward compat."""
+
         @layerclass
         class Marked:
             x: int = field(int, default=1)
@@ -252,11 +254,13 @@ class TestExceptions:
 
     def test_missing_dependency_error_is_config_error(self):
         from layer import ConfigError
+
         err = MissingDependencyError("boto3 not installed")
         assert isinstance(err, ConfigError)
 
     def test_hot_reload_error_is_config_error(self):
         from layer import ConfigError
+
         err = HotReloadError("reload failed")
         assert isinstance(err, ConfigError)
 
@@ -266,6 +270,7 @@ class TestExceptions:
 
     def test_cycle_detected_in_interpolation(self):
         """Circular ${...} references should raise InterpolationCycleError."""
+
         @layerclass
         class CycleConf:
             a: str = field(str, default="${b}")
@@ -275,5 +280,6 @@ class TestExceptions:
         # resolve() swallows InterpolationError internally but should not crash
         # The important thing is that cyclic detection raises InterpolationCycleError
         from layer.interpolation import resolve_value
+
         with pytest.raises(InterpolationCycleError):
             resolve_value("${a}", c)

@@ -8,9 +8,7 @@ from layer.exceptions import StructureError
 @layerclass
 class AliasConfig:
     api_key: str = field(str, alias="apiKey", default=None)
-    server_port: int = field(
-        int, alias="server-port", aliases=["serverPort"], default=8080
-    )
+    server_port: int = field(int, alias="server-port", aliases=["serverPort"], default=8080)
     user_name: str = field(str, default="admin")  # no alias — tests fallback behaviour
 
 

@@ -91,6 +91,10 @@ class TestFileProvider:
         with pytest.raises(FileNotFoundError):
             p.read()
 
+    def test_file_not_found_ignored_when_required_false(self, tmp_path):
+        p = FileProvider(str(tmp_path / "nonexistent.yml"), required=False)
+        assert p.read() == {}
+
 
 # ---------------------------------------------------------------------------
 # EnvProvider
@@ -222,11 +226,7 @@ class TestDotEnvProvider:
 
     def test_import_error_without_dotenv(self, monkeypatch):
         # Temporarily hide dotenv module
-        real_import = (
-            __builtins__.__import__
-            if hasattr(__builtins__, "__import__")
-            else __import__
-        )
+        real_import = __builtins__.__import__ if hasattr(__builtins__, "__import__") else __import__
 
         def mock_import(name, *args, **kwargs):
             if name == "dotenv":
@@ -248,11 +248,7 @@ class TestSSMProvider:
     def test_import_error_without_boto3(self, monkeypatch):
         from layer.providers.ssm import SSMProvider
 
-        real_import = (
-            __builtins__.__import__
-            if hasattr(__builtins__, "__import__")
-            else __import__
-        )
+        real_import = __builtins__.__import__ if hasattr(__builtins__, "__import__") else __import__
 
         def mock_import(name, *args, **kwargs):
             if name == "boto3":
@@ -280,11 +276,7 @@ class TestVaultProvider:
     def test_import_error_without_hvac(self, monkeypatch):
         from layer.providers.vault import VaultProvider
 
-        real_import = (
-            __builtins__.__import__
-            if hasattr(__builtins__, "__import__")
-            else __import__
-        )
+        real_import = __builtins__.__import__ if hasattr(__builtins__, "__import__") else __import__
 
         def mock_import(name, *args, **kwargs):
             if name == "hvac":

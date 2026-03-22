@@ -104,9 +104,7 @@ class TestStrictMode:
         assert isinstance(c.port, int)
 
     def test_known_keys_accepted(self):
-        c = solidify(
-            {"port": 1234, "host": "prod"}, ModeConfig, mode=SolidifyMode.STRICT
-        )
+        c = solidify({"port": 1234, "host": "prod"}, ModeConfig, mode=SolidifyMode.STRICT)
         assert c.host == "prod"
 
 
@@ -145,17 +143,13 @@ class TestSolidifyFileMode:
 class TestPipelineMode:
     def test_pipeline_strict_raises_on_unknown_key(self):
         provider = DictProvider({"port": 8080, "bad_key": "oops"})
-        pipeline = ConfigPipeline(ModeConfig, mode=SolidifyMode.STRICT).add_provider(
-            provider
-        )
+        pipeline = ConfigPipeline(ModeConfig, mode=SolidifyMode.STRICT).add_provider(provider)
         with pytest.raises(StructureError):
             pipeline.load()
 
     def test_pipeline_lax_ignores_unknown_key(self):
         provider = DictProvider({"port": 8080, "bad_key": "ignored"})
-        pipeline = ConfigPipeline(ModeConfig, mode=SolidifyMode.LAX).add_provider(
-            provider
-        )
+        pipeline = ConfigPipeline(ModeConfig, mode=SolidifyMode.LAX).add_provider(provider)
         config = pipeline.load()
         assert config.port == 8080
 

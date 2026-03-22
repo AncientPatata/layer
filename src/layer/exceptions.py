@@ -8,9 +8,7 @@ class ValidationError(ConfigError):
     """One or more validation rules failed."""
 
     def __init__(self, field: str, message: str, rule: str, category: str):
-        super().__init__(
-            f"[Category: {category}] Field '{field}' failed rule '{rule}': {message}"
-        )
+        super().__init__(f"[Category: {category}] Field '{field}' failed rule '{rule}': {message}")
         self.field = field
         self.message = message
         self.rule = rule

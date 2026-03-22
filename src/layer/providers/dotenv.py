@@ -29,8 +29,7 @@ class DotEnvProvider(BaseProvider):
             from dotenv import dotenv_values
         except ImportError:
             raise MissingDependencyError(
-                "python-dotenv is required for DotEnvProvider: "
-                "pip install layer[dotenv]"
+                "python-dotenv is required for DotEnvProvider: pip install layer[dotenv]"
             )
         env_vars = dotenv_values(self._path)
         for k, v in env_vars.items():

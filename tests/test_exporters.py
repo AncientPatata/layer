@@ -107,6 +107,45 @@ class TestToDotenvTemplate:
 
 
 # ---------------------------------------------------------------------------
+# to_yaml
+# ---------------------------------------------------------------------------
+
+
+class TestToYaml:
+    def test_returns_string(self):
+        result = exporters.to_yaml(SimpleConfig)
+        assert isinstance(result, str)
+
+    def test_includes_fields(self):
+        result = exporters.to_yaml(SimpleConfig)
+        assert "host: localhost" in result
+        assert "port: 5432" in result
+
+    def test_description_as_comment(self):
+        result = exporters.to_yaml(SimpleConfig)
+        assert "# Database host" in result
+        assert "# Database port" in result
+
+    def test_secret_field_uses_placeholder(self):
+        result = exporters.to_yaml(SimpleConfig)
+        assert "# password: <secret>" in result
+        assert "password: null" not in result
+
+    def test_nested_config_section(self):
+        result = exporters.to_yaml(NestedConfig)
+        assert "tls:" in result
+        assert "  cert: /etc/certs/cert.pem" in result
+
+    def test_none_default_produces_null(self):
+        @layerclass
+        class NullConfig:
+            value: str = field(str, default=None)
+
+        result = exporters.to_yaml(NullConfig)
+        assert "value: null" in result
+
+
+# ---------------------------------------------------------------------------
 # to_configmap
 # ---------------------------------------------------------------------------
 

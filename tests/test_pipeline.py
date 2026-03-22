@@ -164,9 +164,7 @@ class TestPipelineReload:
         def reactor(field_path, old, new, shadow):
             calls.append({"field": field_path, "old": old, "new": new})
 
-        pipeline = (
-            ConfigPipeline(FileConfig).add_provider(provider).on_change("host", reactor)
-        )
+        pipeline = ConfigPipeline(FileConfig).add_provider(provider).on_change("host", reactor)
         pipeline.load()
 
         provider.data["host"] = "changed"
@@ -195,11 +193,7 @@ class TestPipelineReload:
         def custom_mutator(field_path, old, new, shadow):
             mutator_calls.append(field_path)
 
-        pipeline = (
-            ConfigPipeline(FileConfig)
-            .add_provider(provider)
-            .on_change("*", custom_mutator)
-        )
+        pipeline = ConfigPipeline(FileConfig).add_provider(provider).on_change("*", custom_mutator)
         pipeline.load()
 
         provider.data["host"] = "v2"
@@ -253,9 +247,7 @@ class TestPipelineReload:
         def reactor(field_path, old, new, shadow):
             shadows.append(shadow)
 
-        pipeline = (
-            ConfigPipeline(FileConfig).add_provider(provider).on_change("host", reactor)
-        )
+        pipeline = ConfigPipeline(FileConfig).add_provider(provider).on_change("host", reactor)
         pipeline.load()
 
         provider.data["host"] = "v2"
@@ -424,9 +416,7 @@ class TestReloadableLocking:
         class AppConf:
             tls: TlsConf = field(TlsConf, default=None)
 
-        provider = MutableDictProvider(
-            {"tls": {"cert": "/original/cert", "ca": "/original/ca"}}
-        )
+        provider = MutableDictProvider({"tls": {"cert": "/original/cert", "ca": "/original/ca"}})
         pipeline = ConfigPipeline(AppConf).add_provider(provider)
         pipeline.load()
 

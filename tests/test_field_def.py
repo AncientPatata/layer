@@ -23,9 +23,7 @@ class DescConfig:
 @layerclass
 class ExplainConfig:
     endpoint: str = field(str, cluster=[require], description="Cluster URL")
-    output: str = field(
-        str, common=[one_of("json", "yaml")], default="json", description="Format"
-    )
+    output: str = field(str, common=[one_of("json", "yaml")], default="json", description="Format")
 
 
 class TestFieldDefMeta:
@@ -35,10 +33,7 @@ class TestFieldDefMeta:
         assert fdef.meta["envvar"] == "AK__Endpoint"
 
     def test_description_stored(self):
-        assert (
-            MetaConfig._field_defs["endpoint"].description
-            == "ArmoniK cluster endpoint URL"
-        )
+        assert MetaConfig._field_defs["endpoint"].description == "ArmoniK cluster endpoint URL"
 
     def test_accessible_without_instance(self):
         assert "endpoint" in MetaConfig._field_defs

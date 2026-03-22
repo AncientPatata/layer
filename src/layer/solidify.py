@@ -92,9 +92,7 @@ def solidify(
 
         # Nested @layer_obj: recursively solidify if value is a dict
         if _is_layer_obj_type(fdef.type_hint) and isinstance(value, dict):
-            nested = solidify(
-                value, fdef.type_hint, source=source, coerce=coerce, mode=mode
-            )
+            nested = solidify(value, fdef.type_hint, source=source, coerce=coerce, mode=mode)
             setattr(instance, field_name, nested)
             instance._sources[field_name].push(source, nested)
         else:
@@ -184,14 +182,16 @@ def solidify_env(
 # --- File helpers ---
 
 
-def _read_file(path: str) -> dict:
+def _read_file(path: str, fmt: str | None = None) -> dict:
     """Parse a config file and return its contents as a dict.
 
     Supports .yml/.yaml, .json, and .toml formats. Detects format from
-    file extension.
+    file extension unless overridden by fmt.
 
     Args:
         path: Path to the config file.
+        fmt: Explicit format override: ``"yaml"``, ``"json"``, or ``"toml"``.
+            Use when the filename has no recognisable extension.
 
     Returns:
         Parsed file contents as a dict.
@@ -205,15 +205,16 @@ def _read_file(path: str) -> dict:
     if not _os.path.exists(path):
         raise FileNotFoundError(f"Config file not found: {path}")
 
-    ext = str(path).rsplit(".", 1)[-1].lower() if "." in str(path) else ""
+    if fmt is not None:
+        ext = fmt.lower().lstrip(".")
+    else:
+        ext = str(path).rsplit(".", 1)[-1].lower() if "." in str(path) else ""
 
     if ext in ("yml", "yaml"):
         try:
             import yaml
         except ImportError:
-            raise StructureError(
-                "PyYAML is required to load .yml/.yaml files: pip install PyYAML"
-            )
+            raise StructureError("PyYAML is required to load .yml/.yaml files: pip install PyYAML")
         with open(path, "r") as f:
             data = yaml.safe_load(f) or {}
 
@@ -242,9 +243,7 @@ def _read_file(path: str) -> dict:
         )
 
     if not isinstance(data, dict):
-        raise StructureError(
-            f"Config file '{path}' must contain a mapping at the top level"
-        )
+        raise StructureError(f"Config file '{path}' must contain a mapping at the top level")
 
     return data
 
@@ -306,9 +305,7 @@ def write_file(config, path: str, format: str = None, by_alias: bool = False):
     """
     if format is None:
         ext = str(path).rsplit(".", 1)[-1].lower() if "." in str(path) else ""
-        format = {"yml": "yaml", "yaml": "yaml", "json": "json", "toml": "toml"}.get(
-            ext
-        )
+        format = {"yml": "yaml", "yaml": "yaml", "json": "json", "toml": "toml"}.get(ext)
 
     data = config.to_dict(by_alias=by_alias)
 
@@ -330,9 +327,7 @@ def write_file(config, path: str, format: str = None, by_alias: bool = False):
         try:
             import tomli_w
         except ImportError:
-            raise StructureError(
-                "tomli_w is required to write .toml files: pip install tomli-w"
-            )
+            raise StructureError("tomli_w is required to write .toml files: pip install tomli-w")
         with open(path, "wb") as f:
             tomli_w.dump(data, f)
 

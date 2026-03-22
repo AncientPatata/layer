@@ -191,9 +191,7 @@ def computed_field(fn):
 
 def _is_layerclass(cls_or_instance):
     """Check if something is a @layerclass decorated class or instance of one."""
-    cls = (
-        cls_or_instance if isinstance(cls_or_instance, type) else type(cls_or_instance)
-    )
+    cls = cls_or_instance if isinstance(cls_or_instance, type) else type(cls_or_instance)
     return hasattr(cls, "_field_defs") and hasattr(cls, "_is_layerclass_marker")
 
 
@@ -313,9 +311,7 @@ def layerclass(cls):
                     setattr(
                         self,
                         name,
-                        fdef.default.copy()
-                        if fdef.default is not None
-                        else fdef.type_hint(),
+                        fdef.default.copy() if fdef.default is not None else fdef.type_hint(),
                     )
                 else:
                     setattr(self, name, fdef.default)
@@ -346,11 +342,7 @@ def layerclass(cls):
             """
             rules = rules or {}
             for name in self._field_defs:
-                other_source = (
-                    other._sources[name].current
-                    if name in other._sources
-                    else "default"
-                )
+                other_source = other._sources[name].current if name in other._sources else "default"
 
                 # Skip fields that weren't explicitly set in 'other'
                 if other_source == "default":
@@ -367,9 +359,7 @@ def layerclass(cls):
                     and _is_layer_obj(base_val)
                     and _is_layer_obj(other_val)
                 ):
-                    nested_rules = (
-                        rules.get(name) if isinstance(rules.get(name), dict) else None
-                    )
+                    nested_rules = rules.get(name) if isinstance(rules.get(name), dict) else None
                     base_val.layer(other_val, rules=nested_rules)
                     # Merge source info: mark as the other source since it was touched
                     self._sources[name].push(other_source, getattr(self, name).copy())
@@ -464,9 +454,7 @@ def layerclass(cls):
             # Phase 2: @validator methods
             for field_names, validator_cats, fn in self._method_validators:
                 should_run = (
-                    not validator_cats
-                    or check_all
-                    or bool(cats_to_check & set(validator_cats))
+                    not validator_cats or check_all or bool(cats_to_check & set(validator_cats))
                 )
                 if not should_run:
                     continue
@@ -483,9 +471,7 @@ def layerclass(cls):
 
             for validator_cats, fn in self._root_validators:
                 should_run = (
-                    not validator_cats
-                    or check_all
-                    or bool(cats_to_check & set(validator_cats))
+                    not validator_cats or check_all or bool(cats_to_check & set(validator_cats))
                 )
                 if not should_run:
                     continue
@@ -495,9 +481,7 @@ def layerclass(cls):
                     errors.append(e)
                 except _ConfigError as e:
                     errors.append(
-                        ValidationError(
-                            "__root__", str(e), fn.__name__, "root_validator"
-                        )
+                        ValidationError("__root__", str(e), fn.__name__, "root_validator")
                     )
 
             return ValidationResult(errors)
@@ -788,9 +772,7 @@ def layerclass(cls):
                             if rule.__closure__ and len(rule.__closure__) >= 2:
                                 cells = [c.cell_contents for c in rule.__closure__]
                                 # Closure ordering is alphabetical (hi, lo) — use min/max
-                                numeric = [
-                                    c for c in cells if isinstance(c, (int, float))
-                                ]
+                                numeric = [c for c in cells if isinstance(c, (int, float))]
                                 if len(numeric) >= 2:
                                     prop["minimum"] = min(numeric)
                                     prop["maximum"] = max(numeric)
