@@ -35,6 +35,8 @@ from .exceptions import (
     CoercionError,
 )
 from .interpolation import resolve_all, resolve_value, InterpolationError
+from .pipeline import ConfigPipeline
+from .providers import BaseProvider
 
 __all__ = [
     # Core
@@ -82,4 +84,7 @@ __all__ = [
     "resolve_all",
     "resolve_value",
     "InterpolationError",
+    # Pipeline
+    "ConfigPipeline",
+    "BaseProvider",
 ]

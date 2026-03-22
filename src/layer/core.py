@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Any, Type, Dict, List, Optional
+from typing import Any, Type, Dict, List
 from collections import defaultdict
 
 from .interpolation import resolve_all
@@ -616,6 +616,14 @@ def layer_obj(cls):
                 if _is_layer_obj(fdef.type_hint) and _is_layer_obj(val):
                     val.freeze()
             self._frozen = True
+
+        def _unfreeze_deep(self):
+            """Recursively unfreeze this config and all nested layer_obj children."""
+            self._frozen = False
+            for name, fdef in self._field_defs.items():
+                val = getattr(self, name)
+                if _is_layer_obj(fdef.type_hint) and _is_layer_obj(val):
+                    val._unfreeze_deep()
 
         @property
         def frozen(self):

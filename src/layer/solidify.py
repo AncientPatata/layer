@@ -150,38 +150,23 @@ def solidify_env(
 # --- File helpers ---
 
 
-def solidify_file(
-    path: str,
-    target: Type,
-    source: str = None,
-    check: Optional[List[str]] = None,
-    strict: bool = False,
-    coerce: bool = True,
-):
-    """Load a config file (YAML, JSON, or TOML) and solidify it into a typed config.
+def _read_file(path: str) -> dict:
+    """Parse a config file and return its contents as a dict.
 
-    Detects format from file extension. Requires the corresponding library
-    to be installed (PyYAML for .yml/.yaml, tomllib/tomli for .toml).
+    Supports .yml/.yaml, .json, and .toml formats. Detects format from
+    file extension.
 
     Args:
         path: Path to the config file.
-        target: Target @layer_obj class.
-        source: Source tag. Defaults to the file path.
-        check: Categories to validate after loading.
-        strict: Raise on unknown keys.
-        coerce: Attempt type coercion.
 
     Returns:
-        An instance of target.
+        Parsed file contents as a dict.
 
     Raises:
         FileNotFoundError: If path doesn't exist.
         StructureError: If file format is unsupported or parsing fails.
     """
     import os as _os
-
-    if source is None:
-        source = str(path)
 
     if not _os.path.exists(path):
         raise FileNotFoundError(f"Config file not found: {path}")
@@ -226,6 +211,42 @@ def solidify_file(
         raise StructureError(
             f"Config file '{path}' must contain a mapping at the top level"
         )
+
+    return data
+
+
+def solidify_file(
+    path: str,
+    target: Type,
+    source: str = None,
+    check: Optional[List[str]] = None,
+    strict: bool = False,
+    coerce: bool = True,
+):
+    """Load a config file (YAML, JSON, or TOML) and solidify it into a typed config.
+
+    Detects format from file extension. Requires the corresponding library
+    to be installed (PyYAML for .yml/.yaml, tomllib/tomli for .toml).
+
+    Args:
+        path: Path to the config file.
+        target: Target @layer_obj class.
+        source: Source tag. Defaults to the file path.
+        check: Categories to validate after loading.
+        strict: Raise on unknown keys.
+        coerce: Attempt type coercion.
+
+    Returns:
+        An instance of target.
+
+    Raises:
+        FileNotFoundError: If path doesn't exist.
+        StructureError: If file format is unsupported or parsing fails.
+    """
+    if source is None:
+        source = str(path)
+
+    data = _read_file(path)
 
     return solidify(
         data, target, source=source, check=check, strict=strict, coerce=coerce
