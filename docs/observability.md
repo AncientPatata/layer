@@ -46,19 +46,22 @@ This is useful when you're debugging a value that was set by multiple providers 
 
 ### `.explain()`
 
-Provides a structured overview of every field — current value, source, type, description, and validation categories. Secret fields are automatically redacted:
+Provides a structured overview of every field — current value, source, type, description, and validation categories. `explain()` redacts `secret=True` fields by default, since it's primarily a debugging and logging tool. Computed fields are never redacted.
 
 ```python
 config.explain()
 # [
-#   {"field": "host",     "value": "db.prod.example.com", "source": "env:APP_HOST",   ...},
-#   {"field": "port",     "value": 5432,                  "source": "config.yml",     ...},
-#   {"field": "password", "value": "***",                 "source": "env:APP_PASSWORD",...},
-#   {"field": "dsn",      "value": "***",                 "source": "computed",       ...},
+#   {"field": "host",     "value": "db.prod.example.com", "source": "env:APP_HOST",    ...},
+#   {"field": "port",     "value": 5432,                  "source": "config.yml",      ...},
+#   {"field": "password", "value": "***",                 "source": "env:APP_PASSWORD", ...},
+#   {"field": "dsn",      "value": "postgresql://db.prod.example.com:5432/myapp",
+#                                                         "source": "computed",         ...},
 # ]
 ```
 
 Pass `full_history=True` to include the complete source chain for every field — the same data as `source_history_of()`, but for all fields at once. Pass `redact=False` if you need the real values in a trusted context (audit tooling, debug CLIs).
+
+`to_dict()` behaves differently: it defaults to `redact=False` because it's commonly used for serialization back to disk, where you want the actual values. Pass `redact=True` explicitly when using `to_dict()` for logging or display.
 
 ### `.diff()`
 

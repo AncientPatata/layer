@@ -90,21 +90,31 @@ def field(
     )
 
 
-def parser(*field_names):
+def parser(*field_names, before_coerce=False):
     """Marks a method as a data parser for the specified field(s).
 
-    The method is called after type coercion but before the value is written to
-    the field. It receives the current value and must return the transformed value.
+    By default, the method is called after type coercion but before the value is
+    written to the field. If `before_coerce=True` is provided, it runs before
+    the value is coerced by the type resolution engine.
+
+    The method receives the current value and must return the transformed value.
     It runs during solidify(), solidify_env(), and set().
 
     Usage:
         @parser("endpoint")
         def _clean_endpoint(self, value: str) -> str:
             return value.strip().rstrip("/")
+
+        @parser("status", before_coerce=True)
+        def _parse_status(self, value: Any) -> str:
+            if isinstance(value, dict) and "status" in value:
+                return value["status"]
+            return value
     """
 
     def decorator(fn):
         fn._layer_parser_fields = field_names
+        fn._layer_parser_before_coerce = before_coerce
         return fn
 
     return decorator
@@ -588,6 +598,11 @@ def layerclass(cls):
 
             fdef = self._field_defs[field_name]
 
+            # Apply before_coerce parsers
+            for parse_fn in type(self)._parsers.get(field_name, []):
+                if getattr(parse_fn, "_layer_parser_before_coerce", False):
+                    value = parse_fn(self, value)
+
             # Type coerce if the value is a string and the target isn't
             if isinstance(value, str) and fdef.type_hint is not str:
                 from .solidify import _coerce
@@ -596,7 +611,8 @@ def layerclass(cls):
 
             # Apply @parser methods (after coercion, before write)
             for parse_fn in type(self)._parsers.get(field_name, []):
-                value = parse_fn(self, value)
+                if not getattr(parse_fn, "_layer_parser_before_coerce", False):
+                    value = parse_fn(self, value)
 
             setattr(self, field_name, value)
             self._sources[field_name].push(source, value)

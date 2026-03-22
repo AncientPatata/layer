@@ -108,7 +108,7 @@ config.explain()
 # ]
 ```
 
-Note that `api_key` is automatically redacted because it was declared with `secret=True`. Pass `redact=False` explicitly if you need the real value in a context where that's appropriate.
+Note that `api_key` is automatically redacted because it was declared with `secret=True`. `explain()` redacts secrets by default since it's a debugging tool — pass `redact=False` if you need the real value. `to_dict()` is the inverse: it defaults to `redact=False` because it's commonly used for serialization, so pass `redact=True` explicitly when using it for logging or display.
 
 `explain()` also accepts `full_history=True` to show the complete chain of every source that contributed to each field — useful when you suspect a value was set and then overridden unexpectedly.
 

@@ -77,6 +77,24 @@ class TestParser:
         c = solidify({"value": "x"}, C)
         assert c.value == "x-step1-step2"
 
+    def test_parser_before_coerce(self):
+        @layerclass
+        class C:
+            count: int = field(int, default=0)
+
+            @parser("count", before_coerce=True)
+            def _extract_int(self, value):
+                if isinstance(value, str) and value.startswith("num_"):
+                    return value.split("_")[-1]
+                return value
+
+            @parser("count")
+            def _multiply_int(self, value):
+                return value * 2
+
+        c = solidify({"count": "num_5"}, C)
+        assert c.count == 10
+
 
 # ---------------------------------------------------------------------------
 # @validator

@@ -206,18 +206,16 @@ class PaymentConfig:
     # External API sends "apiEndpoint" in its config exports
     api_endpoint: str = field(str, default=None, alias="apiEndpoint", prod=[require])
 
-    @parser("min_amount_cents", "max_amount_cents")
+    @parser("min_amount_cents", "max_amount_cents", before_coerce=True)
     def _clean_amount(self, value):
-        """Normalize currency strings to raw integer cent values."""
+        """Strip currency symbols and separators before int() is called."""
         if isinstance(value, str):
-            # Strip currency symbols, spaces, and thousands separators
-            cleaned = value.strip().lstrip("$€£").replace(",", "").replace(".", "")
-            return cleaned
+            return value.strip().lstrip("$€£").replace(",", "")
         return value
 
     @parser("api_endpoint")
     def _normalize_endpoint(self, value):
-        """Remove trailing slashes for consistent interpolation."""
+        """Remove trailing slashes after coercion — value is already a str here."""
         if isinstance(value, str):
             return value.strip().rstrip("/")
         return value
@@ -229,10 +227,10 @@ pipeline = (
 )
 
 config = pipeline.load()
-# config/payments.yml had: min_amount_cents: "1,00"  (European: 1 euro = 100 cents)
-# After parser: "100" → int coercion → 100
+# config/payments.yml had: min_amount_cents: "1,500"
+# before_coerce=True → "1500" → int coercion → 1500
 
 pipeline.validate(["prod"]).raise_if_invalid()
 ```
 
-Parsers run before type coercion, so `"1,500"` becomes `"1500"` before Python's `int()` is called. Without the parser, `int("1,500")` would raise a `CoercionError`.
+`_clean_amount` uses `before_coerce=True` because it needs to strip the comma *before* `int()` is called — `int("1,500")` would raise a `CoercionError`. `_normalize_endpoint` runs after coercion (the default) since the value is already a string and just needs trimming.

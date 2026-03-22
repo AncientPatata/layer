@@ -187,32 +187,47 @@ Both support `categories=`. Omit it to make the validator bare (runs on every `v
 
 ## Parsers
 
-Parsers are transform functions that normalize raw values *before* type coercion. They're distinct from validators: parsers mutate, validators assert. The separation matters because loading and validation are different concerns — sometimes you need to clean raw input before it's even in a state worth validating.
+Parsers are transform functions that normalize a field's value *after* type coercion, before it is written to the field. They're distinct from validators: parsers mutate, validators assert. The separation matters because loading and validation are different concerns — sometimes you need to clean a coerced value before it's even in a state worth validating.
 
 ```python
 from layer import parser
 
 @layerclass
-class PaymentConfig:
-    amount_cents: int = field(int, default=0)
-    endpoint:     str = field(str, default=None, prod=[require, is_url])
+class ServiceConfig:
+    endpoint: str = field(str, default=None, prod=[require, is_url])
+    tags:     list = field(list, default=[])
 
-    @parser("amount_cents")
-    def _clean_amount(self, value):
-        """Strip currency symbols and thousands separators before int coercion."""
-        if isinstance(value, str):
-            return value.strip().lstrip("$€£").replace(",", "").replace(".", "")
-        return value
-
-    @parser("endpoint", "callback_url")
-    def _normalize_url(self, value):
-        """Remove trailing slashes so validators and interpolation work consistently."""
+    @parser("endpoint")
+    def _normalize_endpoint(self, value):
+        """Normalize after coercion — value is already a str here."""
         if isinstance(value, str):
             return value.strip().rstrip("/")
         return value
+
+    @parser("endpoint", "callback_url")
+    def _ensure_https(self, value):
+        """One parser method can cover multiple fields."""
+        if isinstance(value, str) and value.startswith("http://"):
+            return value.replace("http://", "https://", 1)
+        return value
 ```
 
-Parsers run during `solidify()`, `solidify_env()`, and `set()` — anywhere a value is written to a field. They receive the raw incoming value and must return the transformed value.
+If you need to transform a value *before* coercion — for example, stripping thousands separators from `"1,234"` so that `int()` can handle it — pass `before_coerce=True`:
+
+```python
+@layerclass
+class PaymentConfig:
+    amount_cents: int = field(int, default=0)
+
+    @parser("amount_cents", before_coerce=True)
+    def _clean_amount(self, value):
+        """Strip currency symbols and separators before int() is called."""
+        if isinstance(value, str):
+            return value.strip().lstrip("$€£").replace(",", "")
+        return value
+```
+
+Parsers run during `solidify()`, `solidify_env()`, and `set()` — anywhere a value is written to a field. They receive the value and must return the transformed value.
 
 Use parsers for: stripping whitespace, removing formatting characters (thousands separators, currency symbols), normalizing casing, expanding shorthand values, or any transformation that should be transparent to the rest of the pipeline.
 

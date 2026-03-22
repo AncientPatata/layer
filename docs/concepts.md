@@ -82,7 +82,7 @@ Layer also handles `Optional[T]`, `Union[A, B]` (tries each type in order), `Lit
 
 ### Parsers
 
-Parsers are pre-processing transforms that run on a field's value before type coercion is applied. They exist because loading and validation are separate concerns — sometimes you need to normalize raw input before it's even ready to validate.
+Parsers are transform functions that run on a field's value *after* type coercion. They exist because loading and validation are separate concerns — sometimes you need to normalize a value after it's been coerced into the right type but before it's written to the field or validated.
 
 A parser is a method decorated with `@parser("field_name")`:
 
@@ -90,19 +90,28 @@ A parser is a method decorated with `@parser("field_name")`:
 from layer import layerclass, field, parser
 
 @layerclass
-class PaymentConfig:
-    # Raw value might be "1.234.567" (European formatting) or " $1,234 "
-    amount_cents: int = field(int, default=0)
+class ServerConfig:
+    endpoint: str = field(str, default=None)
 
-    @parser("amount_cents")
-    def _clean_amount(self, value):
+    @parser("endpoint")
+    def _normalize_endpoint(self, value):
+        # Runs after coercion — value is already a str here
         if isinstance(value, str):
-            # Strip currency symbols, spaces, and thousands separators
-            return value.strip().lstrip("$€").replace(",", "").replace(".", "")
+            return value.strip().rstrip("/")
         return value
 ```
 
-Parsers run during `solidify()`, `solidify_env()`, and `set()` — anywhere a value is written to a field. They receive the raw value and must return the transformed value. If parsing fails, raise a `ValueError` or `ConfigError` with a clear message.
+If you need to transform a value *before* coercion — for example, stripping thousands separators from `"1,234"` so that `int()` can handle it — pass `before_coerce=True`:
+
+```python
+@parser("amount_cents", before_coerce=True)
+def _clean_amount(self, value):
+    if isinstance(value, str):
+        return value.strip().lstrip("$€£").replace(",", "")
+    return value
+```
+
+Parsers run during `solidify()`, `solidify_env()`, and `set()` — anywhere a value is written to a field. They receive the value and must return the transformed value. If parsing fails, raise a `ValueError` or `ConfigError` with a clear message.
 
 You can register one parser method for multiple fields:
 

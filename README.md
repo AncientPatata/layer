@@ -1,5 +1,6 @@
-# Layer
+<div align="center">
 
+# Layer
 [![CI](https://github.com/ancientpatata/layer/actions/workflows/ci.yml/badge.svg)](https://github.com/ancientpatata/layer/actions/workflows/ci.yml)
 [![PyPI version](https://img.shields.io/pypi/v/layer.svg)](https://pypi.org/project/layer/)
 [![Python versions](https://img.shields.io/pypi/pyversions/layer.svg)](https://pypi.org/project/layer/)
@@ -8,58 +9,15 @@
 
 **Deterministic, multi-source configuration with validation, provenance tracking, and hot-reloading.**
 
-Layer is a Python library for applications that pull config from multiple places (files, environment variables, AWS SSM, HashiCorp Vault) and need to merge them reliably, validate them explicitly, and understand exactly where every value came from.
-
----
-
-## Why Layer
-
-Most config libraries give you a dict. Layer gives you a typed, validated, observable object with a clear story: every field knows which provider set it, when, and what the value was before.
-
-The design follows a strict order of operations:
-
-```
-1. Define   →  declare your schema with @layerclass
-2. Load     →  ingest providers, merge overlays, resolve ${vars}
-3. Validate →  run category-specific rules
-4. Freeze   →  lock the object
-```
-
-`load()` never validates. `validate()` never loads. This separation lets you load a minimal config quickly at startup and defer expensive or tricky cross-field validations to later, validate when it's needed, or run different rule sets in different environments without touching the schema.
-
----
-
-## Quick Start
-
-```python
-from layer import layerclass, field, computed_field, ConfigPipeline, require, is_port
-from layer.providers import FileProvider, EnvProvider
-
-@layerclass
-class AppConfig:
-    host: str = field(str, default="localhost")
-    port: int = field(int, default=8080, prod=[require, is_port])
-    timeout_ms: int = field(int, default=5000)
-    max_retries: int = field(int, default=3)
-
-    @computed_field
-    def retry_budget_ms(self) -> int:
-        """Total time budget across all retry attempts."""
-        return self.timeout_ms * self.max_retries
+</div>
 
 
-pipeline = (
-    ConfigPipeline(AppConfig)
-    .add_provider(FileProvider("config.yml"))
-    .add_provider(EnvProvider("APP"))           # env vars win over file
-)
 
-config = pipeline.load()                        # ingest → merge → resolve → freeze
-pipeline.validate(["prod"]).raise_if_invalid()  # validate explicitly, never inside load()
+Layer is a Python library for applications that pull config from multiple places (files, environment variables, AWS SSM, HashiCorp Vault, etc.) and need to merge them reliably, validate them explicitly, and understand exactly where every value came from.
 
-print(config.retry_budget_ms)   # 15000
-print(config.host)              # whatever APP_HOST resolved to
-```
+`load()` never validates. `validate()` never loads. The result is a typed, frozen, thread-safe object where every field knows which provider set it and what the value was before.
+
+
 
 ---
 
@@ -77,9 +35,70 @@ pip install layer[vault]   # VaultProvider via hvac
 
 ---
 
-## Nested Configs and Cross-Field Interpolation
+## Quick Start
 
-You can nest `@layerclass` instances as typed fields. Providers merge into each sub-config independently, and `${...}` interpolation can reach across the full config tree using dot-paths.
+```python
+from layer import layerclass, field, ConfigPipeline, require, is_port
+from layer.providers import FileProvider, EnvProvider
+
+@layerclass
+class AppConfig:
+    host:        str = field(str, default="localhost")
+    port:        int = field(int, default=8080, prod=[require, is_port])
+    timeout_ms:  int = field(int, default=5000)
+    db_password: str = field(str, default=None, secret=True)
+
+pipeline = (
+    ConfigPipeline(AppConfig)
+    .add_provider(FileProvider("config.yml"))
+    .add_provider(EnvProvider("APP"))           # APP_HOST, APP_PORT, etc. win over file
+)
+
+config = pipeline.load()                        # ingest → merge → resolve → freeze
+pipeline.validate(["prod"]).raise_if_invalid()  # explicit, never inside load()
+
+print(config.source_of("host"))   # "env:APP_HOST", "config.yml", or "default"
+```
+
+---
+
+## Provenance Tracking
+
+Every field records where its value came from. Useful when something is wrong and you need to know which of your five providers is responsible.
+
+```python
+config.source_of("host")
+# "env:APP_HOST"
+
+config.source_history_of("host")
+# [
+#   SourceEntry(source="default",      value="localhost"),
+#   SourceEntry(source="config.yml",   value="db.internal"),
+#   SourceEntry(source="env:APP_HOST", value="db.prod.example.com"),
+# ]
+
+config.explain()
+# [
+#   {"field": "host",        "value": "db.prod.example.com", "source": "env:APP_HOST", ...},
+#   {"field": "port",        "value": 5432,                  "source": "config.yml",   ...},
+#   {"field": "db_password", "value": "***",                 "source": "env:APP_...",  ...},
+# ]
+```
+
+`explain()` redacts `secret=True` fields by default. `to_dict()` defaults to no redaction since it's typically used for serialization — pass `redact=True` explicitly when using it for logging or display.
+
+When you set a field programmatically, you can tag the source for full traceability:
+
+```python
+config.set("database.host", "db-failover.internal", source="failover-handler")
+config.source_of("database.host")   # "failover-handler"
+```
+
+---
+
+## Nested Configs and Interpolation
+
+Nest `@layerclass` instances as typed fields. `${...}` interpolation resolves across the full tree using dot-paths, after all providers have been merged.
 
 ```python
 @layerclass
@@ -91,72 +110,10 @@ class DatabaseConfig:
 @layerclass
 class AppConfig:
     database: DatabaseConfig = field(DatabaseConfig, default=None)
-
-    # Interpolates across nested config : ${database.host} resolves at load time
     dsn: str = field(str, default="postgresql://${database.host}:${database.port}/${database.name}")
 ```
 
-```yaml
-# config.yml
-database:
-  host: db.prod.example.com
-  port: 5432
-  name: myapp_prod
-```
-
-```python
-config = ConfigPipeline(AppConfig).add_provider(FileProvider("config.yml")).load()
-print(config.dsn)  # postgresql://db.prod.example.com:5432/myapp_prod
-```
-
-Dot-notation works everywhere: `config.get("database.host")`, `on_change("database.host", callback)`, `LayerRule` overrides in `add_provider()`.
-
----
-
-## Provenance Tracking
-
-Every field records where its value came from. This makes debugging config issues in systems with many providers straightforward.
-
-```python
-config.source_of("host")
-# "env:APP_HOST"
-
-config.source_history_of("host")
-# [
-#   SourceEntry(source="default",     value="localhost"),
-#   SourceEntry(source="config.yml",  value="db.internal"),
-#   SourceEntry(source="env:APP_HOST",value="db.prod.example.com"),
-# ]
-
-config.explain()
-# [
-#   {"field": "host",  "value": "db.prod.example.com", "source": "env:APP_HOST",  ...},
-#   {"field": "port",  "value": 5432,                  "source": "config.yml",    ...},
-#   {"field": "dsn",   "value": "***",                 "source": "computed",      ...},
-#   ...
-# ]
-```
-
-`explain()` redacts secrets by default. Pass `full_history=True` to see the full value chain for every field.
-
----
-
-## Diffing Configs
-
-`diff()` compares two config instances and returns a structured list of what changed, including which provider each value came from. Nested fields are reported with dot-paths.
-
-```python
-before = pipeline.load()
-# ... time passes, file changes ...
-after  = pipeline._build_shadow()
-
-for change in before.diff(after):
-    print(change)
-# {"field": "database.host", "old_value": "db-1", "new_value": "db-2",
-#  "old_source": "config.yml", "new_source": "config.yml"}
-```
-
-This is what drives hot-reload callbacks internally and the same diff mechanism is available to you directly.
+Dot-notation works everywhere: `config.get("database.host")`, `on_change("database.host", cb)`, `LayerRule` overrides in `add_provider()`.
 
 ---
 
@@ -164,34 +121,28 @@ This is what drives hot-reload callbacks internally and the same diff mechanism 
 
 ### Categories
 
-Attach validators to named categories. Only the categories you request are checked:
+Attach validators to named categories. Only the categories you request are checked. Bare (uncategorized) validators always run.
 
 ```python
 @layerclass
 class DBConfig:
-    host: str = field(str, default="localhost")
-    port: int = field(int, is_port, default=5432)  # bare validators always runs
-
-    ssl_cert: str = field(
-        str,
-        default=None,
-        prod=[require, path_exists],  # only checked when "prod" is requested
-        dev=[optional],
-    )
-    password: str = field(
-        str,
-        default=None,
-        prod=[require],
-        dev=[optional],
-        secret=True,
-    )
+    host:     str = field(str, default="localhost")
+    port:     int = field(int, is_port, default=5432)       # bare — always runs
+    ssl_cert: str = field(str, default=None,
+                          prod=[require, path_exists],       # only in prod
+                          dev=[optional])
+    password: str = field(str, default=None,
+                          prod=[require],
+                          secret=True)
 ```
 
 ```python
 pipeline.validate(["prod"]).raise_if_invalid()   # prod rules + bare
-pipeline.validate(["dev"]).raise_if_invalid()    # dev rules + bare
-pipeline.validate([]).raise_if_invalid()         # bare rules only
-pipeline.validate(["*"]).raise_if_invalid()      # everything
+pipeline.validate([]).raise_if_invalid()         # bare only
+pipeline.validate("*").raise_if_invalid()        # every category + bare
+
+# Validate specific fields only
+pipeline.validate(["prod"], fields=["ssl_cert", "password"]).raise_if_invalid()
 ```
 
 ### Built-in Validators
@@ -209,7 +160,7 @@ from layer import (
 |---|---|
 | `require` | value is not `None` |
 | `not_empty` | not `None`, `""`, `[]`, or `{}` |
-| `optional` | always passes (documentation marker) |
+| `optional` | always passes (documents that `None` is intentional) |
 | `one_of("a", "b")` | value is in the given set |
 | `in_range(lo, hi)` | numeric value within `[lo, hi]` |
 | `is_port` | integer in `1–65535` |
@@ -218,30 +169,15 @@ from layer import (
 | `regex(pattern)` | string matches the regex |
 | `min_length(n)` / `max_length(n)` | string/list length |
 | `path_exists` | path exists on the filesystem |
-| `each_item(validator)` | applies any validator to every item in a list |
-
-### Cross-Field Validators
-
-```python
-@layerclass
-class AuthConfig:
-    api_key: str    = field(str, default=None, auth=[requires_any("api_key", "client_cert")])
-    client_cert: str = field(str, default=None, auth=[depends_on("client_key")])
-    client_key: str  = field(str, default=None)
-    auth_mode: str   = field(str, default=None, auth=[mutually_exclusive("api_key", "client_cert")])
-```
-
-| Validator | When it raises |
-|---|---|
+| `each_item(validator)` | applies any validator to every list item |
 | `requires_if("other", value)` | this field is `None` when `other == value` |
 | `requires_any("a", "b", ...)` | all listed fields are `None` |
-| `requires_all("a", "b", ...)` | some but not all listed fields are set |
 | `mutually_exclusive("a", "b", ...)` | more than one listed field is set |
 | `depends_on("a", "b", ...)` | this field is set but a dependency is `None` |
 
 ### Custom Validators
 
-Any callable `(value, field_name, config) -> True | raise ValidationError`:
+Any callable `(value, field_name, config) -> True | raise ValidationError`. The `config` argument gives access to the full object, so cross-field checks are straightforward:
 
 ```python
 from layer import ValidationError
@@ -256,9 +192,7 @@ class ServerConfig:
     endpoint: str = field(str, default=None, prod=[require, is_url, no_localhost])
 ```
 
-### Class-Level Validators
-
-For checks that need `self` or span multiple fields:
+For checks that need `self` or span multiple fields, use `@validator` and `@root_validator`:
 
 ```python
 from layer import validator, root_validator, ValidationError, ConfigError
@@ -266,7 +200,7 @@ from layer import validator, root_validator, ValidationError, ConfigError
 @layerclass
 class TLSConfig:
     cert_path: str = field(str, default=None)
-    key_path: str  = field(str, default=None)
+    key_path:  str = field(str, default=None)
 
     @validator("cert_path", "key_path", categories=["prod"])
     def _files_exist(self, field_name, value):
@@ -281,35 +215,32 @@ class TLSConfig:
 
 ---
 
-## Computed Fields
+## Parsers
 
-`@computed_field` exposes a method as a read-only property. It's evaluated on every access, appears in `to_dict()` and `explain()`, and cannot be assigned to.
+Parsers transform a field's value during loading, separate from validation. By default they run after type coercion; pass `before_coerce=True` when you need to clean a raw string before `int()` or similar is called.
 
 ```python
+from layer import parser
+
 @layerclass
-class WorkerConfig:
-    timeout_ms: int  = field(int, default=5000)
-    max_retries: int = field(int, default=3)
-    tls_cert: str    = field(str, default=None)
-    tls_key: str     = field(str, default=None)
-    worker_ids: list = field(list, default=None)
+class PaymentConfig:
+    amount_cents: int = field(int, default=0)
+    endpoint:     str = field(str, default=None)
 
-    @computed_field
-    def retry_budget_ms(self) -> int:
-        """Total time budget across all retry attempts."""
-        return self.timeout_ms * self.max_retries
+    @parser("amount_cents", before_coerce=True)
+    def _clean_amount(self, value):
+        """Strip currency symbols before int() is called."""
+        if isinstance(value, str):
+            return value.strip().lstrip("$€£").replace(",", "")
+        return value
 
-    @computed_field
-    def tls_enabled(self) -> bool:
-        """TLS is active only when both cert and key are configured."""
-        return bool(self.tls_cert and self.tls_key)
-
-    @computed_field
-    def worker_count(self) -> int:
-        return len(self.worker_ids) if self.worker_ids else 0
+    @parser("endpoint")
+    def _normalize_endpoint(self, value):
+        """Trim and remove trailing slashes after coercion."""
+        if isinstance(value, str):
+            return value.strip().rstrip("/")
+        return value
 ```
-
-Use `${field_name}` interpolation for string composition. Use `@computed_field` for everything else such as boolean flags, numeric calculations, structural checks.
 
 ---
 
@@ -319,66 +250,34 @@ Use `${field_name}` interpolation for string composition. Use `@computed_field` 
 
 | Provider | Source |
 |---|---|
-| `FileProvider(path, watch=False)` | YAML, JSON, or TOML file |
+| `FileProvider(path, watch=False, required=True)` | YAML, JSON, or TOML file |
 | `EnvProvider(prefix, separator="_")` | Environment variables |
 | `DotEnvProvider(path=".env")` | `.env` file → `os.environ` |
-| `SSMProvider(path_prefix, region=None)` | AWS SSM Parameter Store |
+| `SSMProvider(path_prefix)` | AWS SSM Parameter Store |
 | `VaultProvider(secret_path, url, token)` | HashiCorp Vault KV v2 |
 
 Providers are applied in order. Later providers override earlier ones by default.
 
-### Per-Provider Layering Rules
+### Layering Rules
 
-Control how specific fields are merged when a provider is applied:
+Control how specific fields are merged per provider:
 
 ```python
 from layer import LayerRule
 
-pipeline = (
-    ConfigPipeline(AppConfig)
-    .add_provider(FileProvider("base.yml"))
-    .add_provider(
-        EnvProvider("APP"),
-        rules={
-            "allowed_hosts":  LayerRule.APPEND,    # append to base list
-            "feature_flags":  LayerRule.MERGE,     # merge with base dict
-            "log_level":      LayerRule.PRESERVE,  # keep base value, ignore env
-        }
-    )
+pipeline.add_provider(
+    FileProvider(str(home_dir / ".mycli/config.toml"), required=False),
+    rules={
+        "plugins":       LayerRule.APPEND,    # append to existing list
+        "feature_flags": LayerRule.MERGE,     # union with existing dict
+        "log_level":     LayerRule.PRESERVE,  # keep the first value set
+    }
 )
 ```
 
-Available rules: `OVERRIDE` (default), `PRESERVE`, `MERGE` (dicts), `APPEND` (lists).
+Available rules: `OVERRIDE` (default), `PRESERVE`, `MERGE` (dicts), `APPEND` (lists). Dot-notation works for nested fields: `{"database.port": LayerRule.PRESERVE}`.
 
-Dot-notation works for nested fields: `{"database.port": LayerRule.PRESERVE}`.
-
----
-
-## Hot Reloading
-
-```python
-pipeline = (
-    ConfigPipeline(AppConfig)
-    .add_provider(FileProvider("config.yml", watch=True))
-    .on_change("log_level", lambda field, old, new, shadow: reconfigure_logging(new))
-    .on_change("database.host", lambda field, old, new, shadow: reconnect_db(new))
-)
-config = pipeline.load()
-pipeline.start()  # starts background watchdog thread
-```
-
-Fields marked `reloadable=False` are locked at startup and skipped during reload (useful for parameters that can't safely change at runtime):
-
-```python
-@layerclass
-class DBConfig:
-    dsn: str       = field(str, default=None, reloadable=False)  # locked at startup
-    pool_size: int = field(int, default=5)                        # can reload
-```
-
----
-
-## Custom Providers
+### Custom Providers
 
 ```python
 from layer.providers import BaseProvider
@@ -389,7 +288,6 @@ class RedisProvider(BaseProvider):
         self._key = key
 
     def read(self) -> dict:
-        import json
         raw = self._client.get(self._key)
         return json.loads(raw) if raw else {}
 
@@ -397,6 +295,65 @@ class RedisProvider(BaseProvider):
     def source_name(self) -> str:
         return f"redis:{self._key}"
 ```
+
+Any `BaseProvider` can be used for polling remote sources (KV stores, S3, feature flag APIs). Call `pipeline._reload()` on a timer to pull changes without file watching.
+
+---
+
+## Hot Reloading
+
+```python
+pipeline = (
+    ConfigPipeline(AppConfig)
+    .add_provider(FileProvider("config.yml", watch=True))
+    .on_change("log_level",     lambda field, old, new, shadow: reconfigure_logging(new))
+    .on_change("database.host", lambda field, old, new, shadow: reconnect_db(new))
+)
+config = pipeline.load()
+pipeline.start()   # starts background watchdog thread
+```
+
+Fields marked `reloadable=False` are locked to their startup value and skipped on reload:
+
+```python
+@layerclass
+class DBConfig:
+    dsn:       str = field(str, default=None, reloadable=False)  # locked at startup
+    pool_size: int = field(int, default=5)                       # reloads freely
+```
+
+---
+
+## Computed Fields
+
+`@computed_field` exposes a method as a read-only property. It's evaluated on every access and appears in `to_dict()` and `explain()`.
+
+```python
+@layerclass
+class WorkerConfig:
+    worker_ids: list = field(list, default=None)
+
+    @computed_field
+    def worker_count(self) -> int:
+        """Number of active workers."""
+        return len(self.worker_ids) if self.worker_ids else 0
+```
+
+---
+
+## Aliases and Field Options
+
+Fields accept `alias` and `aliases` to map external key names (camelCase, kebab-case, etc.) to your Python field names:
+
+```python
+@layerclass
+class APIConfig:
+    api_key:  str = field(str, default=None, secret=True,  alias="apiKey")
+    base_url: str = field(str, default=None, aliases=["baseUrl", "base-url"])
+    port:     int = field(int, default=8080, env="SERVICE_PORT")  # explicit env var name
+```
+
+`to_dict(by_alias=True)` exports using alias names — useful when serializing back to a format that expects camelCase.
 
 ---
 
@@ -409,7 +366,7 @@ import logging
 pipeline = ConfigPipeline(AppConfig, logger=logging.getLogger("myapp"))
 ```
 
-Or subclass `BasePipelineObserver` for custom metrics:
+Or subclass `BasePipelineObserver` for custom metrics/alerting:
 
 ```python
 from layer import BasePipelineObserver
@@ -419,31 +376,30 @@ class DatadogObserver(BasePipelineObserver):
         statsd.increment("config.reload", tags=[f"fields:{len(diffs)}"])
 
     def on_hot_reload_locked(self, field):
-        statsd.increment("config.reload.locked", tags=[f"field:{field}"])
+        # A reloadable=False field changed — may need a restart
+        alert.warning(f"Locked config field '{field}' changed; restart required")
 
 pipeline = ConfigPipeline(AppConfig, observer=DatadogObserver())
 ```
 
 Available hooks: `on_provider_read`, `on_coercion_error`, `on_layer_merged`, `on_hot_reload_triggered`, `on_hot_reload_locked`.
 
----
-
-## Exporters
+### Exporters
 
 Generate deployment artifacts directly from your schema:
 
 ```python
 from layer import exporters
 
-# .env template : descriptions become comments, secrets get placeholder values
-print(exporters.to_dotenv_template(AppConfig, prefix="APP"))
+# .env template — field descriptions become comments, secrets get a placeholder
+exporters.to_dotenv_template(AppConfig, prefix="APP")
 # # Service hostname
 # APP_HOST=localhost
 # APP_PORT=8080
-# APP_PASSWORD=<secret>
+# APP_DB_PASSWORD=<secret>
 
-# Kubernetes ConfigMap : secrets automatically omitted
-print(exporters.to_configmap(AppConfig, name="myapp-config"))
+# Kubernetes ConfigMap — secrets omitted with a comment
+exporters.to_configmap(AppConfig, name="myapp-config")
 
 # JSON Schema for documentation or external validation
 schema = exporters.to_json_schema(AppConfig)
@@ -453,11 +409,7 @@ schema = exporters.to_json_schema(AppConfig)
 
 ## SolidifyMode
 
-```python
-from layer import SolidifyMode
-
-pipeline = ConfigPipeline(AppConfig, mode=SolidifyMode.STRICT)
-```
+Controls how provider data is coerced into your schema:
 
 | Mode | Unknown keys | Type coercion errors |
 |---|---|---|
@@ -465,14 +417,18 @@ pipeline = ConfigPipeline(AppConfig, mode=SolidifyMode.STRICT)
 | `STANDARD` (default) | silently ignored | raises `CoercionError` |
 | `STRICT` | raises `StructureError` | no coercion attempted |
 
+```python
+pipeline = ConfigPipeline(AppConfig, mode=SolidifyMode.STRICT)
+```
+
 ---
 
-## Direct Use (without Pipeline)
+## Without a Pipeline
 
-For simpler cases or testing:
+For scripts, tests, or one-off validation:
 
 ```python
-from layer import solidify, solidify_file, solidify_env
+from layer import solidify_file, solidify_env
 
 config = solidify_file("config.yml", AppConfig)
 env_overlay = solidify_env("APP", AppConfig)
@@ -481,3 +437,18 @@ config.resolve()
 config.validate(["prod"]).raise_if_invalid()
 config.freeze()
 ```
+
+---
+
+## Links
+
+- [Documentation](https://ancientpatata.github.io/layer/)
+- [Getting Started](https://ancientpatata.github.io/layer/getting-started/)
+
+--- 
+
+<div align="center">
+
+Made with ❤️ 
+
+</div>

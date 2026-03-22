@@ -96,6 +96,11 @@ def solidify(
             setattr(instance, field_name, nested)
             instance._sources[field_name].push(source, nested)
         else:
+            # Apply before_coerce parsers
+            for parse_fn in type(instance)._parsers.get(field_name, []):
+                if getattr(parse_fn, "_layer_parser_before_coerce", False):
+                    value = parse_fn(instance, value)
+
             # Coerce if requested
             if coerce and fdef.type_hint is not None:
                 try:
@@ -107,7 +112,8 @@ def solidify(
 
             # Apply @parser methods (after coercion, before write)
             for parse_fn in type(instance)._parsers.get(field_name, []):
-                value = parse_fn(instance, value)
+                if not getattr(parse_fn, "_layer_parser_before_coerce", False):
+                    value = parse_fn(instance, value)
 
             setattr(instance, field_name, value)
             instance._sources[field_name].push(source, value)
@@ -168,10 +174,16 @@ def solidify_env(
         for env_key in env_keys:
             val = os.environ.get(env_key)
             if val is not None:
+                # Apply before_coerce parsers
+                for parse_fn in type(instance)._parsers.get(name, []):
+                    if getattr(parse_fn, "_layer_parser_before_coerce", False):
+                        val = parse_fn(instance, val)
+
                 coerced = _coerce(val, fdef.type_hint, parser=fdef.parser)
                 # Apply @parser methods (after coercion, before write)
                 for parse_fn in type(instance)._parsers.get(name, []):
-                    coerced = parse_fn(instance, coerced)
+                    if not getattr(parse_fn, "_layer_parser_before_coerce", False):
+                        coerced = parse_fn(instance, coerced)
                 setattr(instance, name, coerced)
                 instance._sources[name].push(f"env:{env_key}", coerced)
                 break  # Stop at first found in fallback chain
