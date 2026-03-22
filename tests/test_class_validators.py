@@ -1,9 +1,8 @@
 """Tests for @parser, @validator, and @root_validator class-level decorators."""
 
 import os
-import pytest
 from layer import (
-    layer_obj,
+    layerclass,
     field,
     parser,
     validator,
@@ -19,7 +18,7 @@ from layer.exceptions import ValidationError, ConfigError
 # ---------------------------------------------------------------------------
 
 
-@layer_obj
+@layerclass
 class EndpointConfig:
     endpoint: str = field(str, default=None)
     other: str = field(str, default="unchanged")
@@ -63,7 +62,7 @@ class TestParser:
         assert c.endpoint == "https://env.example.com"
 
     def test_multiple_parsers_run_in_order(self):
-        @layer_obj
+        @layerclass
         class C:
             value: str = field(str, default=None)
 
@@ -84,7 +83,7 @@ class TestParser:
 # ---------------------------------------------------------------------------
 
 
-@layer_obj
+@layerclass
 class TLSConfig:
     enabled: bool = field(bool, default=False)
     cert: str = field(str, default=None)
@@ -162,7 +161,7 @@ class TestValidator:
 # ---------------------------------------------------------------------------
 
 
-@layer_obj
+@layerclass
 class DBConfig:
     driver: str = field(str, default="postgres")
     dsn: str = field(str, default=None)
@@ -226,7 +225,7 @@ class TestRootValidator:
         # Ensure field errors and root errors are both collected
         from layer import require
 
-        @layer_obj
+        @layerclass
         class C:
             value: str = field(str, require, default=None)
 

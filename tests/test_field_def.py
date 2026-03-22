@@ -1,10 +1,9 @@
 """Tests for field definitions: metadata, descriptions, class/instance access, and explain()."""
 
-import pytest
-from layer import layer_obj, field, require, one_of
+from layer import layerclass, field, require, one_of
 
 
-@layer_obj
+@layerclass
 class MetaConfig:
     endpoint: str = field(
         str,
@@ -14,14 +13,14 @@ class MetaConfig:
     )
 
 
-@layer_obj
+@layerclass
 class DescConfig:
     endpoint: str = field(str, description="The cluster endpoint URL")
     port: int = field(int, default=5000, description="Port number")
     debug: bool = field(bool, default=False)
 
 
-@layer_obj
+@layerclass
 class ExplainConfig:
     endpoint: str = field(str, cluster=[require], description="Cluster URL")
     output: str = field(
@@ -48,7 +47,7 @@ class TestFieldDefMeta:
 
 class TestFieldDefsAttribute:
     def test_available_on_class(self):
-        @layer_obj
+        @layerclass
         class C:
             port: int = field(int, default=5000)
 
@@ -56,7 +55,7 @@ class TestFieldDefsAttribute:
         assert "port" in C._field_defs
 
     def test_available_on_instance(self):
-        @layer_obj
+        @layerclass
         class C:
             port: int = field(int, default=5000)
 

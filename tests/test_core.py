@@ -2,11 +2,11 @@
 
 import dataclasses
 import pytest
-from layer import layer_obj, field
+from layer import layerclass, field
 from conftest import AppConfig
 
 
-@layer_obj
+@layerclass
 class SecretConfig:
     user: str = field(str, default="admin")
     password: str = field(str, secret=True, default="supersecret")
@@ -86,7 +86,7 @@ class Point:
     y: int
 
 
-@layer_obj
+@layerclass
 class PointConfig:
     location: Point = field(Point, default=None)
     name: str = field(str, default="default")
@@ -130,7 +130,7 @@ class TestToDictExternalModels:
             street: str
             city: str
 
-        @layer_obj
+        @layerclass
         class AddrConfig:
             address: Address = field(Address, default=None)
 

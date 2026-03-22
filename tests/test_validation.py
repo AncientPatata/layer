@@ -1,16 +1,15 @@
 """Tests for cross-field validators and layering rules."""
 
-import pytest
-from layer import layer_obj, field, requires_if, LayerRule
+from layer import layerclass, field, requires_if, LayerRule
 
 
-@layer_obj
+@layerclass
 class CrossValidConfig:
     auth_type: str = field(str, default="none")
     token: str = field(str, default=None, auth=[requires_if("auth_type", "bearer")])
 
 
-@layer_obj
+@layerclass
 class MergeConfig:
     items: list = field(list, default=["a"])
     flags: dict = field(dict, default={"debug": True})

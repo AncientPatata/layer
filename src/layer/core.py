@@ -161,24 +161,44 @@ def root_validator(categories=None):
 def computed_field(fn):
     """Marks a method as a computed (read-only, dynamic) field.
 
-    The method is exposed as a property and integrated into to_dict() and
-    explain(). Attempting to assign to a computed field raises AttributeError.
+    The decorated method is exposed as a property evaluated on each access and
+    is automatically included in ``to_dict()`` and ``explain()``. Attempting to
+    assign a value to a computed field raises ``AttributeError``.
 
-    Usage:
-        @computed_field
-        def total_timeout(self) -> int:
-            return self.timeout_base * self.retry_count
+    Args:
+        fn: The method to promote to a computed field. Must accept only ``self``
+            and should include a return-type annotation so ``explain()`` can
+            report the type.
+
+    Returns:
+        The same callable with ``_layer_computed = True`` set; the
+        ``@layerclass`` decorator later replaces it with a ``property``.
+
+    Example:
+        @layerclass
+        class ServiceConfig:
+            timeout_base: int = field(int, default=10)
+            retry_count: int = field(int, default=3)
+
+            @computed_field
+            def total_timeout(self) -> int:
+                \"\"\"Total max wait across all retries.\"\"\"
+                return self.timeout_base * self.retry_count
     """
     fn._layer_computed = True
     return fn
 
 
-def _is_layer_obj(cls_or_instance):
-    """Check if something is a @layer_obj decorated class or instance of one."""
+def _is_layerclass(cls_or_instance):
+    """Check if something is a @layerclass decorated class or instance of one."""
     cls = (
         cls_or_instance if isinstance(cls_or_instance, type) else type(cls_or_instance)
     )
-    return hasattr(cls, "_field_defs") and hasattr(cls, "_is_layer_obj_marker")
+    return hasattr(cls, "_field_defs") and hasattr(cls, "_is_layerclass_marker")
+
+
+# Backward-compatibility alias
+_is_layer_obj = _is_layerclass
 
 
 def _maybe_redact(value, fdef: FieldDef, redact: bool = True) -> Any:
@@ -188,20 +208,49 @@ def _maybe_redact(value, fdef: FieldDef, redact: bool = True) -> Any:
     return value
 
 
-def layer_obj(cls):
-    """Decorator that converts a class into a LayerObject with layering capabilities.
+def layerclass(cls):
+    """Converts a plain class into a layered configuration object.
 
-    Adds:
-        - .layer(other, rules=None)  — merge another config on top
-        - .validate(categories=None, fields=None) — run validation rules
-        - .copy()                    — deep copy
-        - .to_dict()                 — export as plain dict (recursive for nested)
-        - .explain()                 — structured info about values + sources
-        - .diff(other)               — compare two configs
-        - .freeze() / .frozen        — prevent further mutation
-        - .json_schema()             — generate JSON Schema from field defs
-        - ._sources                  — dict tracking which layer set each field
-        - ._field_defs               — schema metadata from field() declarations (class + instance)
+    The decorated class gains full support for deterministic multi-source
+    config merging: load values from files, environment variables, and remote
+    stores; merge them in priority order; resolve ``${variable}`` references;
+    validate by category; and freeze the result for safe sharing across threads.
+
+    Methods added to the class:
+        layer(other, rules=None): Merge another config on top. Nested
+            ``@layerclass`` fields are recursively merged. ``rules`` is a
+            ``{field_name: LayerRule}`` dict controlling merge strategy
+            (OVERRIDE, PRESERVE, MERGE, APPEND).
+        validate(categories=None, fields=None): Run validation rules.
+            Pass a list of category names to run only those; ``None`` runs
+            bare (uncategorized) rules only; ``"*"`` runs everything.
+        resolve(): Resolve all ``${field_name}`` interpolations in-place.
+        copy(): Deep copy the config instance.
+        to_dict(redact=False, by_alias=False): Export as a plain dict.
+        explain(full_history=False, redact=True): Structured info about
+            current values, sources, and types—great for debugging.
+        diff(other): Compare two configs; returns a list of changed fields.
+        freeze() / frozen: Prevent further mutation of field values.
+        json_schema(): Generate a JSON Schema dict from field definitions.
+        get(field, default=None): Dot-notation field access with fallback.
+        set(field, value, strict=False, source="set()"): Dot-notation setter
+            with optional immediate single-field validation.
+
+    Class-level attributes added:
+        _field_defs: ``{name: FieldDef}`` schema from ``field()`` declarations.
+        _sources: Per-instance ``{name: SourceHistory}`` tracking provenance.
+        _computed_fields: ``{name: fn}`` for ``@computed_field`` methods.
+
+    Example:
+        @layerclass
+        class DatabaseConfig:
+            host: str = field(str, default="localhost", description="DB host")
+            port: int = field(int, default=5432, server=[require, is_port])
+            url: str = field(str, default="${host}:${port}")
+
+            @computed_field
+            def dsn(self) -> str:
+                return f"postgresql://{self.host}:{self.port}/mydb"
     """
 
     # Single pass: harvest FieldDefs, @parser, @validator, @root_validator, @computed_field
@@ -246,7 +295,8 @@ def layer_obj(cls):
     class WrappedConfig(cls):
         # Class-level attributes — accessible without instantiation
         _field_defs = field_defs
-        _is_layer_obj_marker = True
+        _is_layerclass_marker = True
+        _is_layer_obj_marker = True  # backward compat
         _parsers = parsers
         _method_validators = method_validators
         _root_validators = root_validators
@@ -770,3 +820,7 @@ def layer_obj(cls):
     WrappedConfig.__name__ = cls.__name__
     WrappedConfig.__qualname__ = cls.__qualname__
     return WrappedConfig
+
+
+# Backward-compatibility alias
+layer_obj = layerclass

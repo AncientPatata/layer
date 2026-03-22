@@ -1,6 +1,7 @@
 """DotEnvProvider — reads config from .env files via python-dotenv."""
 
 from .base import BaseProvider
+from ..exceptions import MissingDependencyError
 
 
 class DotEnvProvider(BaseProvider):
@@ -27,7 +28,7 @@ class DotEnvProvider(BaseProvider):
         try:
             from dotenv import dotenv_values
         except ImportError:
-            raise ImportError(
+            raise MissingDependencyError(
                 "python-dotenv is required for DotEnvProvider: "
                 "pip install layer[dotenv]"
             )

@@ -6,7 +6,7 @@ Resolves ${field_name} references within string values, with cycle detection.
 
 import re
 from typing import Any, Set
-from .exceptions import InterpolationError
+from .exceptions import InterpolationError, InterpolationCycleError
 
 _VAR_PATTERN = re.compile(r"\$\{([a-zA-Z_][a-zA-Z0-9_.]*)\}")
 
@@ -31,7 +31,7 @@ def resolve_value(value: Any, config, _resolving: Set[str] = None) -> Any:
         ref = match.group(1)
 
         if ref in _resolving:
-            raise InterpolationError(
+            raise InterpolationCycleError(
                 f"Circular reference detected: {ref} -> {' -> '.join(_resolving)}"
             )
 

@@ -1,11 +1,10 @@
 """Tests for solidify() type coercion and solidify_file() / write_file() serialization."""
 
-import pytest
-from layer import layer_obj, field, solidify, solidify_file, write_file
+from layer import layerclass, field, solidify, solidify_file, write_file
 from conftest import FileConfig
 
 
-@layer_obj
+@layerclass
 class CoerceConfig:
     port: int = field(int, default=5000)
     debug: bool = field(bool, default=False)

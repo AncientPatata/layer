@@ -1,22 +1,22 @@
 import pytest
-from layer import layer_obj, field, require, one_of
+from layer import layerclass, field, require, one_of
 
 
-@layer_obj
+@layerclass
 class TlsConfig:
     ca: str = field(str, description="CA certificate path", default=None)
     cert: str = field(str, description="Client certificate path", default=None)
     key: str = field(str, description="Client key path", default=None)
 
 
-@layer_obj
+@layerclass
 class AppConfig:
     endpoint: str = field(str, cluster=[require], description="Cluster endpoint")
     tls: TlsConfig = field(TlsConfig, description="TLS configuration", default=None)
     output: str = field(str, common=[one_of("json", "yaml", "table")], default="json")
 
 
-@layer_obj
+@layerclass
 class FileConfig:
     host: str = field(str, default="localhost")
     port: int = field(int, default=5000)

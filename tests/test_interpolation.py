@@ -1,11 +1,9 @@
 """Tests for variable interpolation and source history tracking."""
 
-import pytest
-from layer import layer_obj, field
-from conftest import FileConfig
+from layer import layerclass, field
 
 
-@layer_obj
+@layerclass
 class InterpolationConfig:
     host: str = field(str, default="localhost")
     port: int = field(int, default=8080)

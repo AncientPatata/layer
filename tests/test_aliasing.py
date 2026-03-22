@@ -1,11 +1,11 @@
 """Tests for field aliasing: alias, aliases, env, and to_dict(by_alias=True)."""
 
 import pytest
-from layer import layer_obj, field, solidify, solidify_env
+from layer import layerclass, field, solidify, solidify_env
 from layer.exceptions import StructureError
 
 
-@layer_obj
+@layerclass
 class AliasConfig:
     api_key: str = field(str, alias="apiKey", default=None)
     server_port: int = field(
@@ -52,7 +52,7 @@ class TestSolidifyAlias:
 
 class TestSolidifyEnvField:
     def test_uses_fdef_env(self, monkeypatch):
-        @layer_obj
+        @layerclass
         class C:
             api_key: str = field(str, env="MY_CUSTOM_KEY", default=None)
 
@@ -61,7 +61,7 @@ class TestSolidifyEnvField:
         assert c.api_key == "from-env"
 
     def test_fdef_env_takes_priority_over_prefix(self, monkeypatch):
-        @layer_obj
+        @layerclass
         class C:
             api_key: str = field(str, env="MY_CUSTOM_KEY", default=None)
 
@@ -71,7 +71,7 @@ class TestSolidifyEnvField:
         assert c.api_key == "from-env"
 
     def test_falls_back_to_prefix_when_env_absent(self, monkeypatch):
-        @layer_obj
+        @layerclass
         class C:
             api_key: str = field(str, default=None)
 
@@ -80,7 +80,7 @@ class TestSolidifyEnvField:
         assert c.api_key == "from-prefix"
 
     def test_missing_env_leaves_default(self, monkeypatch):
-        @layer_obj
+        @layerclass
         class C:
             api_key: str = field(str, env="NONEXISTENT_VAR", default="fallback")
 

@@ -365,9 +365,9 @@ class TestOnChangeChaining:
 class TestReloadableLocking:
     def _make_locked_config(self):
         """Config with a reloadable=False field."""
-        from layer import layer_obj, field
+        from layer import layerclass, field
 
-        @layer_obj
+        @layerclass
         class LockConfig:
             log_level: str = field(str, default="INFO")
             host: str = field(str, default="localhost", reloadable=False)
@@ -413,14 +413,14 @@ class TestReloadableLocking:
         assert any("host" in msg for msg in caplog.messages)
 
     def test_reloadable_false_nested_field(self):
-        from layer import layer_obj, field
+        from layer import layerclass, field
 
-        @layer_obj
+        @layerclass
         class TlsConf:
             cert: str = field(str, default=None, reloadable=False)
             ca: str = field(str, default=None)
 
-        @layer_obj
+        @layerclass
         class AppConf:
             tls: TlsConf = field(TlsConf, default=None)
 

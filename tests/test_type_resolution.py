@@ -4,7 +4,7 @@ import dataclasses
 import pytest
 from typing import Dict, List, Literal, Optional, Tuple, Union
 
-from layer import layer_obj, field, solidify
+from layer import layerclass, field, solidify
 from layer.exceptions import CoercionError, StructureError
 from layer.type_resolution import coerce
 
@@ -187,7 +187,7 @@ class TestPydanticCoercion:
 
 class TestSolidifyIntegration:
     def test_List_int_via_solidify(self):
-        @layer_obj
+        @layerclass
         class C:
             scores: List[int] = field(List[int], default=None)
 
@@ -195,7 +195,7 @@ class TestSolidifyIntegration:
         assert c.scores == [10, 20, 30]
 
     def test_Optional_int_via_solidify(self):
-        @layer_obj
+        @layerclass
         class C:
             port: Optional[int] = field(Optional[int], default=None)
 
@@ -203,7 +203,7 @@ class TestSolidifyIntegration:
         assert solidify({"port": None}, C).port is None
 
     def test_Dict_str_int_via_solidify(self):
-        @layer_obj
+        @layerclass
         class C:
             scores: Dict[str, int] = field(Dict[str, int], default=None)
 
@@ -211,7 +211,7 @@ class TestSolidifyIntegration:
         assert c.scores == {"a": 1, "b": 2}
 
     def test_Literal_valid_via_solidify(self):
-        @layer_obj
+        @layerclass
         class C:
             env: Literal["dev", "prod"] = field(Literal["dev", "prod"], default="dev")
 
@@ -219,7 +219,7 @@ class TestSolidifyIntegration:
         assert c.env == "prod"
 
     def test_Literal_invalid_raises_structure_error(self):
-        @layer_obj
+        @layerclass
         class C:
             env: Literal["dev", "prod"] = field(Literal["dev", "prod"], default="dev")
 
@@ -227,7 +227,7 @@ class TestSolidifyIntegration:
             solidify({"env": "staging"}, C)
 
     def test_Union_via_solidify(self):
-        @layer_obj
+        @layerclass
         class C:
             value: Union[int, str] = field(Union[int, str], default=None)
 

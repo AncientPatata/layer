@@ -4,7 +4,8 @@ with categorical validation and layered merging.
 """
 
 from .core import (
-    layer_obj,
+    layerclass,
+    layer_obj,  # backward-compat alias
     field,
     FieldDef,
     parser,
@@ -41,14 +42,20 @@ from .exceptions import (
     StructureError,
     LayeringError,
     CoercionError,
+    InterpolationCycleError,
+    MissingDependencyError,
+    HotReloadError,
 )
 from .interpolation import resolve_all, resolve_value, InterpolationError
 from .pipeline import ConfigPipeline
 from .providers import BaseProvider
+from .observers import BasePipelineObserver, LoggerObserver
+from . import exporters
 
 __all__ = [
     # Core
-    "layer_obj",
+    "layerclass",
+    "layer_obj",  # backward-compat alias
     "field",
     "FieldDef",
     "parser",
@@ -90,11 +97,19 @@ __all__ = [
     "StructureError",
     "LayeringError",
     "CoercionError",
+    "InterpolationError",
+    "InterpolationCycleError",
+    "MissingDependencyError",
+    "HotReloadError",
     # Interpolation
     "resolve_all",
     "resolve_value",
-    "InterpolationError",
     # Pipeline
     "ConfigPipeline",
     "BaseProvider",
+    # Observers
+    "BasePipelineObserver",
+    "LoggerObserver",
+    # Exporters module
+    "exporters",
 ]

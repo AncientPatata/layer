@@ -4,6 +4,7 @@ import json
 import os
 import pytest
 
+from layer import MissingDependencyError
 from layer.providers import BaseProvider, FileProvider, EnvProvider, DotEnvProvider
 
 
@@ -151,7 +152,7 @@ class TestDotEnvProvider:
         p = DotEnvProvider(path=env_path)
         try:
             p.read()
-        except ImportError:
+        except (ImportError, MissingDependencyError):
             pytest.skip("python-dotenv not installed")
 
         import os
@@ -168,7 +169,7 @@ class TestDotEnvProvider:
         p = DotEnvProvider(path=env_path)
         try:
             result = p.read()
-        except ImportError:
+        except (ImportError, MissingDependencyError):
             pytest.skip("python-dotenv not installed")
 
         assert result == {}
@@ -182,7 +183,7 @@ class TestDotEnvProvider:
         p = DotEnvProvider(path=env_path)
         try:
             p.read()
-        except ImportError:
+        except (ImportError, MissingDependencyError):
             pytest.skip("python-dotenv not installed")
 
         import os
@@ -209,7 +210,7 @@ class TestDotEnvProvider:
                 .add_provider(EnvProvider(prefix="APP"))
             )
             config = pipeline.load()
-        except ImportError:
+        except (ImportError, MissingDependencyError):
             pytest.skip("python-dotenv not installed")
 
         assert config.host == "dotenv.example.com"
@@ -234,7 +235,7 @@ class TestDotEnvProvider:
 
         monkeypatch.setattr("builtins.__import__", mock_import)
         p = DotEnvProvider()
-        with pytest.raises(ImportError, match="python-dotenv"):
+        with pytest.raises((ImportError, MissingDependencyError), match="python-dotenv"):
             p.read()
 
 
@@ -260,7 +261,7 @@ class TestSSMProvider:
 
         monkeypatch.setattr("builtins.__import__", mock_import)
         p = SSMProvider("/prod/app/")
-        with pytest.raises(ImportError, match="boto3"):
+        with pytest.raises((ImportError, MissingDependencyError), match="boto3"):
             p.read()
 
     def test_source_name(self):
@@ -292,7 +293,7 @@ class TestVaultProvider:
 
         monkeypatch.setattr("builtins.__import__", mock_import)
         p = VaultProvider("myapp/config")
-        with pytest.raises(ImportError, match="hvac"):
+        with pytest.raises((ImportError, MissingDependencyError), match="hvac"):
             p.read()
 
     def test_source_name(self):

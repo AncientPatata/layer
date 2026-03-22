@@ -1,5 +1,5 @@
 class ConfigError(Exception):
-    """Base exception for all layerconfig errors."""
+    """Base exception for all layer errors."""
 
     pass
 
@@ -8,7 +8,9 @@ class ValidationError(ConfigError):
     """One or more validation rules failed."""
 
     def __init__(self, field: str, message: str, rule: str, category: str):
-        super().__init__(f"{field}: {message} (rule: {rule}, category: {category})")
+        super().__init__(
+            f"[Category: {category}] Field '{field}' failed rule '{rule}': {message}"
+        )
         self.field = field
         self.message = message
         self.rule = rule
@@ -33,10 +35,28 @@ class InterpolationError(ConfigError):
     pass
 
 
+class InterpolationCycleError(InterpolationError):
+    """Raised when a circular ${variable} reference is detected."""
+
+    pass
+
+
 class CoercionError(ConfigError):
     """Raised when a value cannot be coerced to the target type.
 
     Used internally so Union handling can try the next candidate type on failure.
     """
+
+    pass
+
+
+class MissingDependencyError(ConfigError):
+    """Raised when an optional dependency (boto3, watchdog, etc.) is not installed."""
+
+    pass
+
+
+class HotReloadError(ConfigError):
+    """Raised when an error occurs during hot-reload of configuration."""
 
     pass

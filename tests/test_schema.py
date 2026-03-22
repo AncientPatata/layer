@@ -2,11 +2,11 @@
 
 import json
 import pytest
-from layer import layer_obj, field, require, one_of, in_range
+from layer import layerclass, field, require, one_of, in_range
 from conftest import TlsConfig
 
 
-@layer_obj
+@layerclass
 class SchemaConfig:
     endpoint: str = field(str, cluster=[require], description="Cluster URL")
     port: int = field(int, in_range(1, 65535), default=5000, description="Port number")

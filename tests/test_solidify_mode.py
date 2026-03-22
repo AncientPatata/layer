@@ -2,7 +2,7 @@
 
 import pytest
 from layer import (
-    layer_obj,
+    layerclass,
     field,
     solidify,
     solidify_file,
@@ -13,7 +13,7 @@ from layer.exceptions import CoercionError, StructureError
 from layer.providers.base import BaseProvider
 
 
-@layer_obj
+@layerclass
 class ModeConfig:
     port: int = field(int, default=5000)
     host: str = field(str, default="localhost")

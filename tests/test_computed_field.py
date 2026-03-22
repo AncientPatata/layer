@@ -1,7 +1,7 @@
 """Tests for @computed_field — dynamic read-only fields integrated into to_dict/explain."""
 
 import pytest
-from layer import layer_obj, field, computed_field
+from layer import layerclass, field, computed_field
 
 
 # ---------------------------------------------------------------------------
@@ -9,7 +9,7 @@ from layer import layer_obj, field, computed_field
 # ---------------------------------------------------------------------------
 
 
-@layer_obj
+@layerclass
 class TimeoutConfig:
     timeout_base: int = field(int, default=10)
     retry_count: int = field(int, default=3)
@@ -19,7 +19,7 @@ class TimeoutConfig:
         return self.timeout_base * self.retry_count
 
 
-@layer_obj
+@layerclass
 class GreeterConfig:
     first_name: str = field(str, default="World")
     last_name: str = field(str, default="")

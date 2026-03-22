@@ -1,14 +1,13 @@
-"""Tests for nested @layer_obj config objects."""
+"""Tests for nested @layerclass config objects."""
 
-import pytest
-from layer import layer_obj, field, solidify, solidify_file, write_file
-from layer.core import _is_layer_obj
-from conftest import TlsConfig, AppConfig
+from layer import solidify, solidify_file, write_file
+from layer.core import _is_layerclass
+from conftest import AppConfig
 
 
 class TestNestedDefaults:
-    def test_nested_field_is_layer_obj(self, app_config):
-        assert _is_layer_obj(app_config.tls)
+    def test_nested_field_is_layerclass(self, app_config):
+        assert _is_layerclass(app_config.tls)
 
     def test_nested_defaults_are_none(self, app_config):
         assert app_config.tls.ca is None

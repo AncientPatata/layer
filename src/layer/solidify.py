@@ -25,11 +25,11 @@ class SolidifyMode(Enum):
 
 
 def _is_layer_obj_type(cls):
-    """Check if a type is a @layer_obj decorated class."""
+    """Check if a type is a @layerclass decorated class."""
     return (
         isinstance(cls, type)
         and hasattr(cls, "_field_defs")
-        and hasattr(cls, "_is_layer_obj_marker")
+        and (hasattr(cls, "_is_layerclass_marker") or hasattr(cls, "_is_layer_obj_marker"))
     )
 
 

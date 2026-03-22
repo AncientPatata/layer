@@ -1,6 +1,7 @@
 """SSMProvider — reads config from AWS Systems Manager Parameter Store."""
 
 from .base import BaseProvider
+from ..exceptions import MissingDependencyError
 
 
 class SSMProvider(BaseProvider):
@@ -25,7 +26,7 @@ class SSMProvider(BaseProvider):
         try:
             import boto3
         except ImportError:
-            raise ImportError(
+            raise MissingDependencyError(
                 "boto3 is required for SSMProvider: pip install layer[aws]"
             )
         kwargs = {}

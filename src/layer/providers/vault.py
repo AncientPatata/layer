@@ -3,6 +3,7 @@
 import os
 
 from .base import BaseProvider
+from ..exceptions import MissingDependencyError
 
 
 class VaultProvider(BaseProvider):
@@ -36,7 +37,7 @@ class VaultProvider(BaseProvider):
         try:
             import hvac
         except ImportError:
-            raise ImportError(
+            raise MissingDependencyError(
                 "hvac is required for VaultProvider: pip install layer[vault]"
             )
         url = self._url or os.environ.get("VAULT_ADDR", "http://127.0.0.1:8200")
