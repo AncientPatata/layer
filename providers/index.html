@@ -652,17 +652,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#dotenvprovider" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        DotEnvProvider
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#ssmprovider" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -678,6 +667,17 @@
     <span class="md-ellipsis">
       
         VaultProvider
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#etcdprovider" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EtcdProvider
       
     </span>
   </a>
@@ -1042,17 +1042,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#dotenvprovider" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        DotEnvProvider
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#ssmprovider" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1068,6 +1057,17 @@
     <span class="md-ellipsis">
       
         VaultProvider
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#etcdprovider" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EtcdProvider
       
     </span>
   </a>
@@ -1208,36 +1208,41 @@
 <a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">FileProvider</span><span class="p">(</span><span class="s2">&quot;config.yml&quot;</span><span class="p">,</span> <span class="n">watch</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>             <span class="c1"># enable hot-reload (requires layer[watch])</span>
 </code></pre></div>
 <h3 id="envprovider">EnvProvider<a class="headerlink" href="#envprovider" title="Permanent link">&para;</a></h3>
-<p>Reads environment variables with a given prefix. <code>APP_HOST</code> maps to <code>host</code>, <code>APP_DATABASE_PORT</code> maps to <code>database_port</code> (or the nested field <code>database.port</code> if your schema has a nested <code>@layerclass</code>).</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">EnvProvider</span><span class="p">(</span><span class="s2">&quot;APP&quot;</span><span class="p">)</span>                    <span class="c1"># APP_HOST → host, APP_PORT → port</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">EnvProvider</span><span class="p">(</span><span class="s2">&quot;APP&quot;</span><span class="p">,</span> <span class="n">separator</span><span class="o">=</span><span class="s2">&quot;__&quot;</span><span class="p">)</span>    <span class="c1"># APP__DATABASE__HOST → database.host</span>
+<p>Reads environment variables with a given prefix, and optionally loads them from a <code>.env</code> file without mutating your system's global <code>os.environ</code>.</p>
+<p>If an <code>env_file</code> is specified, it requires <code>pip install layerconf[dotenv]</code>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># System environment only</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">EnvProvider</span><span class="p">(</span><span class="s2">&quot;APP_&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># .env file + system environment (system env always wins)</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">EnvProvider</span><span class="p">(</span><span class="s2">&quot;APP_&quot;</span><span class="p">,</span> <span class="n">env_file</span><span class="o">=</span><span class="s2">&quot;.env&quot;</span><span class="p">)</span>
 </code></pre></div>
-<h3 id="dotenvprovider">DotEnvProvider<a class="headerlink" href="#dotenvprovider" title="Permanent link">&para;</a></h3>
-<p>Reads a <code>.env</code> file and injects its variables into <code>os.environ</code>. Chain it with <code>EnvProvider</code> so prefix-stripping is handled consistently. Requires <code>pip install layerconf[dotenv]</code>.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">layer.providers</span><span class="w"> </span><span class="kn">import</span> <span class="n">DotEnvProvider</span><span class="p">,</span> <span class="n">EnvProvider</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">pipeline</span> <span class="o">=</span> <span class="p">(</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">ConfigPipeline</span><span class="p">(</span><span class="n">AppConfig</span><span class="p">)</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="o">.</span><span class="n">add_provider</span><span class="p">(</span><span class="n">DotEnvProvider</span><span class="p">(</span><span class="s2">&quot;.env&quot;</span><span class="p">))</span>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="o">.</span><span class="n">add_provider</span><span class="p">(</span><span class="n">EnvProvider</span><span class="p">(</span><span class="s2">&quot;APP&quot;</span><span class="p">))</span>
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="p">)</span>
-</code></pre></div>
+<p>The provider is schema-aware. It natively un-flattens variables to match nested <code>@layerclass</code> schemas, and respects explicit field overrides (e.g., <code>field(..., env="DB_PASS")</code>). </p>
 <h3 id="ssmprovider">SSMProvider<a class="headerlink" href="#ssmprovider" title="Permanent link">&para;</a></h3>
 <p>Reads all parameters under an AWS SSM path prefix. Requires <code>pip install layerconf[aws]</code>.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">layer.providers</span><span class="w"> </span><span class="kn">import</span> <span class="n">SSMProvider</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">SSMProvider</span><span class="p">(</span><span class="s2">&quot;/myapp/prod/&quot;</span><span class="p">)</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="c1"># /myapp/prod/database_host  →  database_host</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="c1"># /myapp/prod/api_key        →  api_key</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">layer.providers</span><span class="w"> </span><span class="kn">import</span> <span class="n">SSMProvider</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">SSMProvider</span><span class="p">(</span><span class="s2">&quot;/myapp/prod/&quot;</span><span class="p">)</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1"># /myapp/prod/database_host  →  database_host</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="c1"># /myapp/prod/api_key        →  api_key</span>
 </code></pre></div>
 <h3 id="vaultprovider">VaultProvider<a class="headerlink" href="#vaultprovider" title="Permanent link">&para;</a></h3>
 <p>Reads a KV v2 secret from HashiCorp Vault. Requires <code>pip install layerconf[vault]</code>.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">layer.providers</span><span class="w"> </span><span class="kn">import</span> <span class="n">VaultProvider</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">layer.providers</span><span class="w"> </span><span class="kn">import</span> <span class="n">VaultProvider</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">VaultProvider</span><span class="p">(</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">secret_path</span><span class="o">=</span><span class="s2">&quot;myapp/config&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="n">url</span><span class="o">=</span><span class="s2">&quot;https://vault.example.com&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="n">token</span><span class="o">=</span><span class="s2">&quot;s.abc123&quot;</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="p">)</span>
+</code></pre></div>
+<h3 id="etcdprovider">EtcdProvider<a class="headerlink" href="#etcdprovider" title="Permanent link">&para;</a></h3>
+<p>Reads all keys under a specific path prefix from an etcd cluster. Requires <code>pip install layerconf[etcd]</code>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">layer.providers</span><span class="w"> </span><span class="kn">import</span> <span class="n">EtcdProvider</span>
 <a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">VaultProvider</span><span class="p">(</span>
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">secret_path</span><span class="o">=</span><span class="s2">&quot;myapp/config&quot;</span><span class="p">,</span>
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="n">url</span><span class="o">=</span><span class="s2">&quot;https://vault.example.com&quot;</span><span class="p">,</span>
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="n">token</span><span class="o">=</span><span class="s2">&quot;s.abc123&quot;</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">EtcdProvider</span><span class="p">(</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;/myapp/prod/&quot;</span><span class="p">,</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="n">host</span><span class="o">=</span><span class="s2">&quot;localhost&quot;</span><span class="p">,</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="n">port</span><span class="o">=</span><span class="mi">2379</span>
 <a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="p">)</span>
 </code></pre></div>
 <h2 id="layering-rules">Layering Rules<a class="headerlink" href="#layering-rules" title="Permanent link">&para;</a></h2>
