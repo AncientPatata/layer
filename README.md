@@ -2,8 +2,8 @@
 
 # Layer
 [![CI](https://github.com/ancientpatata/layer/actions/workflows/ci.yml/badge.svg)](https://github.com/ancientpatata/layer/actions/workflows/ci.yml)
-[![PyPI version](https://img.shields.io/pypi/v/layer.svg)](https://pypi.org/project/layer/)
-[![Python versions](https://img.shields.io/pypi/pyversions/layer.svg)](https://pypi.org/project/layer/)
+[![PyPI version](https://img.shields.io/pypi/v/layerconf.svg)](https://pypi.org/project/layerconf/)
+[![Python versions](https://img.shields.io/pypi/pyversions/layerconf.svg)](https://pypi.org/project/layerconf/)
 [![Docs](https://img.shields.io/badge/docs-mkdocs-blue)](https://ancientpatata.github.io/layer/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/ancientpatata/layer/blob/main/LICENSE)
 
