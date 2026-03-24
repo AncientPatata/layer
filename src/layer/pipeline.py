@@ -114,6 +114,8 @@ class ConfigPipeline:
         Example:
             pipeline.add_provider(EnvProvider("APP"), rules={"ports": LayerRule.APPEND})
         """
+        if hasattr(provider, "bind_schema"):
+            provider.bind_schema(self._target_cls)
         self._providers.append((provider, rules or {}))
         return self
 

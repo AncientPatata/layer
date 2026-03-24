@@ -241,7 +241,7 @@ class TestDotEnvProvider:
 
 
 # ---------------------------------------------------------------------------
-# SSMProvider (import-error only — no real AWS in tests)
+# SSMProvider
 # ---------------------------------------------------------------------------
 
 
@@ -266,6 +266,43 @@ class TestSSMProvider:
 
         p = SSMProvider("/prod/app/")
         assert p.source_name == "ssm:/prod/app/"
+
+    def test_schema_bound_unflattening(self):
+        from layer import field, layerclass
+        from layer.providers.ssm import SSMProvider
+
+        @layerclass
+        class DBConfig:
+            port: int = field(int, default=5432)
+            host: str = field(str, default="localhost")
+
+        @layerclass
+        class AppConfig:
+            database: DBConfig = field(DBConfig)
+
+        p = SSMProvider("/myapp/")
+        p.bind_schema(AppConfig)
+
+        pool = {
+            "database/port": "9999",
+            "database_host": "db.internal",  # Test legacy fallback mapping
+        }
+
+        result = p._resolve_schema(p._schema, "", pool)
+        assert result == {"database": {"port": "9999", "host": "db.internal"}}
+
+    def test_unbound_flat_resolution(self):
+        from layer.providers.ssm import SSMProvider
+
+        p = SSMProvider("/myapp/")
+
+        pool = {
+            "database/port": "9999",
+            "database_host": "db.internal",
+        }
+
+        result = p._resolve_flat(pool)
+        assert result == {"database_port": "9999", "database_host": "db.internal"}
 
 
 # ---------------------------------------------------------------------------
@@ -294,3 +331,38 @@ class TestVaultProvider:
 
         p = VaultProvider("myapp/config", mount_point="kv")
         assert p.source_name == "vault:kv/myapp/config"
+
+
+# ---------------------------------------------------------------------------
+# EtcdProvider
+# ---------------------------------------------------------------------------
+
+
+class TestEtcdProvider:
+    def test_schema_bound_unflattening(self):
+        from layer import field, layerclass
+        from layer.providers.etcd import EtcdProvider
+
+        @layerclass
+        class SubConfig:
+            value: str = field(str, default="a")
+
+        @layerclass
+        class RootConfig:
+            sub: SubConfig = field(SubConfig)
+
+        p = EtcdProvider("/prefix/")
+        p.bind_schema(RootConfig)
+
+        pool = {"sub/value": "b"}
+        result = p._resolve_schema(p._schema, "", pool)
+        assert result == {"sub": {"value": "b"}}
+
+    def test_unbound_flat_resolution(self):
+        from layer.providers.etcd import EtcdProvider
+
+        p = EtcdProvider("/prefix/")
+
+        pool = {"sub/value": "b"}
+        result = p._resolve_flat(pool)
+        assert result == {"sub_value": "b"}

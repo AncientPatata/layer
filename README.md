@@ -28,9 +28,10 @@ pip install layerconf
 
 # Optional providers
 pip install layerconf[watch]   # FileProvider(watch=True) hot-reload via watchdog
-pip install layerconf[dotenv]  # DotEnvProvider via python-dotenv
+pip install layerconf[dotenv]  # EnvProvider(env_file=".env") support
 pip install layerconf[aws]     # SSMProvider via boto3
 pip install layerconf[vault]   # VaultProvider via hvac
+pip install layerconf[etcd]    # EtcdProvider via etcd3
 ```
 
 ---
@@ -251,10 +252,10 @@ class PaymentConfig:
 | Provider | Source |
 |---|---|
 | `FileProvider(path, watch=False, required=True)` | YAML, JSON, or TOML file |
-| `EnvProvider(prefix, separator="_")` | Environment variables |
-| `DotEnvProvider(path=".env")` | `.env` file → `os.environ` |
+| `EnvProvider(prefix, env_file=None)` | Environment variables and `.env` files |
 | `SSMProvider(path_prefix)` | AWS SSM Parameter Store |
 | `VaultProvider(secret_path, url, token)` | HashiCorp Vault KV v2 |
+| `EtcdProvider(prefix, host, port)` | Etcd cluster |
 
 Providers are applied in order. Later providers override earlier ones by default.
 

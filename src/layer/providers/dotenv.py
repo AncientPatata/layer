@@ -20,6 +20,15 @@ class DotEnvProvider(BaseProvider):
     """
 
     def __init__(self, path: str = ".env"):
+        import warnings
+
+        warnings.warn(
+            "DotEnvProvider is deprecated and will be removed in a future release. "
+            "Use EnvProvider(env_file=...) instead, which provides unified loading "
+            "without mutating os.environ.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self._path = path
 
     def read(self) -> dict:

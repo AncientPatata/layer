@@ -1,26 +1,31 @@
-"""SSMProvider — reads config from AWS Systems Manager Parameter Store."""
+"""EtcdProvider — reads config from an etcd cluster."""
 
 from ..exceptions import MissingDependencyError
 from .base import BaseProvider
 
 
-class SSMProvider(BaseProvider):
-    """Reads configuration from AWS SSM Parameter Store.
+class EtcdProvider(BaseProvider):
+    """Reads configuration from an etcd cluster.
 
-    Fetches all parameters under the given path prefix. Parameter names
+    Fetches all keys under the given path prefix. Parameter names
     are converted to lowercase field names with the prefix stripped and
     slashes replaced by underscores.
 
-    Requires boto3: pip install layer[aws]
+    Requires etcd3: pip install layerconf[etcd]
 
     Args:
-        path_prefix: SSM path prefix (e.g. "/prod/app/").
-        region: AWS region name. Uses boto3 defaults if None.
+        prefix: Etcd path prefix (e.g. "/myapp/prod/").
+        host: etcd host (default "localhost").
+        port: etcd port (default 2379).
+        **kwargs: Additional arguments passed to etcd3.client()
+            (e.g., ca_cert, cert_key, cert_cert, timeout, user, password).
     """
 
-    def __init__(self, path_prefix: str, region: str = None):
-        self._path_prefix = path_prefix.rstrip("/") + "/"
-        self._region = region
+    def __init__(self, prefix: str, host: str = "localhost", port: int = 2379, **kwargs):
+        self._prefix = prefix.rstrip("/") + "/"
+        self._host = host
+        self._port = port
+        self._client_kwargs = kwargs
         self._schema = None
 
     def bind_schema(self, schema: type) -> None:
@@ -28,23 +33,23 @@ class SSMProvider(BaseProvider):
 
     def read(self) -> dict:
         try:
-            import boto3
+            import etcd3
         except ImportError:
             raise MissingDependencyError(
-                "boto3 is required for SSMProvider: pip install layerconf[aws]"
+                "etcd3 is required for EtcdProvider: pip install layerconf[etcd]"
             )
-        kwargs = {}
-        if self._region:
-            kwargs["region_name"] = self._region
-        client = boto3.client("ssm", **kwargs)
 
+        client = etcd3.client(host=self._host, port=self._port, **self._client_kwargs)
         pool = {}
-        paginator = client.get_paginator("get_parameters_by_path")
-        for page in paginator.paginate(Path=self._path_prefix, WithDecryption=True, Recursive=True):
-            for param in page["Parameters"]:
-                # Keep the relative path (e.g., "database/port")
-                relative_key = param["Name"][len(self._path_prefix) :]
-                pool[relative_key] = param["Value"]
+
+        # get_prefix returns an iterator of (value, metadata) tuples.
+        for value, metadata in client.get_prefix(self._prefix):
+            key = metadata.key.decode("utf-8")
+            val = value.decode("utf-8")
+
+            # Keep the relative path (e.g., "database/port")
+            relative_key = key[len(self._prefix) :]
+            pool[relative_key] = val
 
         if self._schema:
             return self._resolve_schema(self._schema, "", pool)
@@ -68,7 +73,7 @@ class SSMProvider(BaseProvider):
             # Target key is "database/port"
             target_key = f"{prefix}{name}"
 
-            # Also allow fallback to the legacy flattened name if someone used that format in SSM
+            # Also allow fallback to the legacy flattened name if someone used that format in etcd
             # e.g., "database_port" instead of "database/port"
             legacy_key = target_key.replace("/", "_")
 
@@ -88,4 +93,4 @@ class SSMProvider(BaseProvider):
 
     @property
     def source_name(self) -> str:
-        return f"ssm:{self._path_prefix}"
+        return f"etcd:{self._prefix}"

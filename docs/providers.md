@@ -64,26 +64,19 @@ FileProvider("config.yml", watch=True)             # enable hot-reload (requires
 
 ### EnvProvider
 
-Reads environment variables with a given prefix. `APP_HOST` maps to `host`, `APP_DATABASE_PORT` maps to `database_port` (or the nested field `database.port` if your schema has a nested `@layerclass`).
+Reads environment variables with a given prefix, and optionally loads them from a `.env` file without mutating your system's global `os.environ`.
+
+If an `env_file` is specified, it requires `pip install layerconf[dotenv]`.
 
 ```python
-EnvProvider("APP")                    # APP_HOST → host, APP_PORT → port
-EnvProvider("APP", separator="__")    # APP__DATABASE__HOST → database.host
+# System environment only
+EnvProvider("APP_")
+
+# .env file + system environment (system env always wins)
+EnvProvider("APP_", env_file=".env")
 ```
 
-### DotEnvProvider
-
-Reads a `.env` file and injects its variables into `os.environ`. Chain it with `EnvProvider` so prefix-stripping is handled consistently. Requires `pip install layerconf[dotenv]`.
-
-```python
-from layer.providers import DotEnvProvider, EnvProvider
-
-pipeline = (
-    ConfigPipeline(AppConfig)
-    .add_provider(DotEnvProvider(".env"))
-    .add_provider(EnvProvider("APP"))
-)
-```
+The provider is schema-aware. It natively un-flattens variables to match nested `@layerclass` schemas, and respects explicit field overrides (e.g., `field(..., env="DB_PASS")`). 
 
 ### SSMProvider
 
@@ -108,6 +101,20 @@ VaultProvider(
     secret_path="myapp/config",
     url="https://vault.example.com",
     token="s.abc123"
+)
+```
+
+### EtcdProvider
+
+Reads all keys under a specific path prefix from an etcd cluster. Requires `pip install layerconf[etcd]`.
+
+```python
+from layer.providers import EtcdProvider
+
+EtcdProvider(
+    prefix="/myapp/prod/",
+    host="localhost",
+    port=2379
 )
 ```
 

@@ -16,7 +16,7 @@ Optional extras for specific providers:
 
 ```bash
 pip install layerconf[watch]   # hot-reload via watchdog
-pip install layerconf[dotenv]  # DotEnvProvider
+pip install layerconf[dotenv]  # EnvProvider(.env) support
 pip install layerconf[aws]     # SSMProvider (boto3)
 pip install layerconf[vault]   # VaultProvider (hvac)
 ```
@@ -61,7 +61,7 @@ pipeline = (
     ConfigPipeline(AppConfig)
     .add_provider(FileProvider("config/default.yml"))   # baseline
     .add_provider(FileProvider("config/local.yml", required=False))  # local dev overrides
-    .add_provider(EnvProvider("APP"))                   # APP_HOST, APP_PORT, etc.
+    .add_provider(EnvProvider("APP_", env_file=".env")) # APP_HOST, APP_PORT, etc. from .env or system env
 )
 
 config = pipeline.load()
@@ -74,7 +74,7 @@ pipeline = ConfigPipeline(AppConfig)
 pipeline.add_provider(FileProvider("config/default.yml"))
 if os.path.exists("config/local.yml"):
     pipeline.add_provider(FileProvider("config/local.yml"))
-pipeline.add_provider(EnvProvider("APP"))
+pipeline.add_provider(EnvProvider("APP_", env_file=".env"))
 
 config = pipeline.load()
 ```
