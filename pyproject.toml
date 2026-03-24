@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "layerconf"
-version = "0.0.1"
+version = "0.1.0"
 description = "Deterministic, multi-source configuration management with validation, provenance tracking, and hot-reloading"
 readme = "README.md"
 requires-python = ">=3.10.12"
