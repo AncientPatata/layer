@@ -50,15 +50,8 @@ class EnvProvider(BaseProvider):
                 if not self._ignore_missing:
                     raise FileNotFoundError(f"Environment file not found: {self._env_file}")
             else:
-                try:
-                    from dotenv import dotenv_values
-                except ImportError:
-                    from ..exceptions import MissingDependencyError
+                from dotenv import dotenv_values
 
-                    raise MissingDependencyError(
-                        "python-dotenv is required to load .env files:"
-                        + " pip install layerconf[dotenv]"
-                    )
                 env_pool.update(dotenv_values(self._env_file))
 
         # 2. Layer system os.environ on top (system takes precedence)
